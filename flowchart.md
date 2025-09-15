@@ -20,7 +20,7 @@ BRANCH B: Connect Wallet    ↓
                    [Display Best Yields]
 ```
 
-## Wallet Connection Flow
+## Wallet Connection Flow ✅
 
 ```
 [User Clicks "Connect Wallet"]

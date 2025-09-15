@@ -292,7 +292,7 @@ Compound: 12% APY
 Aave: 8% APY
 Uniswap: 15% APY
 
-Best Deal: Uniswup at 15%
+Best Deal: Uniswap at 15%
 ```
 
 That's it. That's your first version. No wallet connection, no transactions, just information.

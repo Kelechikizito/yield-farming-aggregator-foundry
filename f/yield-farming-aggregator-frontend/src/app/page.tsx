@@ -13,7 +13,7 @@ import {
 export default function YieldHunterDashboard() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Header Separate the header into a components of its own */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex sm:flex-row flex-col items-center justify-between">
