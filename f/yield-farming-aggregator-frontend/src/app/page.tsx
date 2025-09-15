@@ -17,12 +17,12 @@ export default function YieldHunterDashboard() {
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex sm:flex-row flex-col items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-accent-foreground" />
                 </div>
-                <h1 className="text-2xl font-bold text-foreground">
+                <h1 className="text-xl font-bold text-foreground">
                   Yield Farming Aggregator
                 </h1>
               </div>
@@ -53,7 +53,7 @@ export default function YieldHunterDashboard() {
                 </a>
               </nav>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex">
               <Button variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
