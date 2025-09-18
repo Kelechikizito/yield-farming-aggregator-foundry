@@ -6,7 +6,7 @@ import { Providers } from "./providers";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 // import { Analytics } from "@vercel/analytics/next";
-// import Header from "@/components/Header"
+import Header from "@/components/Header"
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -26,6 +26,7 @@ export default function RootLayout(props: { children: ReactNode }) {
         className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}
       >
         <Providers>
+          <Header />
           {props.children}
         </Providers>
       </body>

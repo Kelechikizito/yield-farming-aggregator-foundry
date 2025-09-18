@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 /**
  * @title StrategyManager
  * @author Kelechi Kizito Ugwu
- * @notice A contract to manage and optimize investment strategies for a DeFi Yield Aggregator. Handles the logic for comparing yields and switching strategies
+ * @notice This contract manages and optimizes investment strategies for a DeFi Yield Aggregator. Handles the logic for comparing yields and switching strategies
  * @dev
  */
 contract StrategyManager {
@@ -27,6 +27,10 @@ contract StrategyManager {
         _calculateSwitchBenefit(user, positionIndex, newProtocol);
     }
 
+    function isProtocolSafe(string memory protocol) external view returns (bool) {
+        _isProtocolSafe(protocol);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -44,5 +48,9 @@ contract StrategyManager {
         returns (int256 netBenefit)
     {
         // Logic to calculate the net benefit of switching strategies
+    }
+
+    function _isProtocolSafe(string memory protocol) internal view returns (bool) {
+
     }
 }

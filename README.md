@@ -1,4 +1,4 @@
-I'll break down the technical requirements for each phase of your Yield Farming Aggregator project:
+# I'll break down the technical requirements for each phase of your Yield Farming Aggregator project:
 
 ## Phase 1: Understanding & Setup
 
