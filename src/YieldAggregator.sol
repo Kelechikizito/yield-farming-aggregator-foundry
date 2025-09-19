@@ -69,15 +69,15 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         uint256 lastCompoundTime; // For auto-compound tracking
     }
 
-//     UserPosition { This is Alice's(user) position after investing 1000 USDC in compound
-//     protocolName: "compound",           // Where her money went
-//     token: 0xA0b86a33E6....,           // USDC contract address  
-//     principalAmount: 1000000000,        // $1000 USDC (6 decimals)
-//     currentShares: 47500000,            // 47.5 cUSDC tokens she received
-//     depositTimestamp: 1694567890,       // Sept 12, 2024 3:45 PM
-//     autoCompoundEnabled: true,          // She wants auto-reinvesting
-//     lastCompoundTime: 1694567890        // Last time rewards were reinvested
-// }
+    //     UserPosition { This is Alice's(user) position after investing 1000 USDC in compound
+    //     protocolName: "compound",           // Where her money went
+    //     token: 0xA0b86a33E6....,           // USDC contract address
+    //     principalAmount: 1000000000,        // $1000 USDC (6 decimals)
+    //     currentShares: 47500000,            // 47.5 cUSDC tokens she received
+    //     depositTimestamp: 1694567890,       // Sept 12, 2024 3:45 PM
+    //     autoCompoundEnabled: true,          // She wants auto-reinvesting
+    //     lastCompoundTime: 1694567890        // Last time rewards were reinvested
+    // }
 
     struct AutoCompoundSettings {
         bool enabled; // Global auto-compound toggle
@@ -103,13 +103,18 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /////////////////////////////////////////////////////////*/
     event Deposit(address indexed sender, uint256 amount);
 
-    
+    /*/////////////////////////////////////////////////////////
+                            MODIFIERS
+    /////////////////////////////////////////////////////////*/
+    modifier invalidAmount(uint256 amount) {
+        if (amount == 0) revert YieldAggregator__InvalidAmount();
+        _;
+    }
+
     /*/////////////////////////////////////////////////////////
                             CONSTRUCTOR
     /////////////////////////////////////////////////////////*/
-    constructor() Ownable(msg.sender) {
-        
-    }
+    constructor() Ownable(msg.sender) {}
 
     /*//////////////////////////////////////////////////////////////
                         RECEIVE FUNCTION
@@ -121,4 +126,57 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+    // function invest(address token, uint256 amount, string memory preferredProtocol)
+    //     external
+    //     nonReentrant
+    //     invalidAmount(amount)
+    // {
+    //     _invest(token, amount, preferredProtocol);
+    // }
+
+    /*////////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    ////////////////////////////////////////////////////////////////*/
+    /**
+     * @notice Invest tokens into the best available yield protocol
+     * @param token The token to invest
+     * @param amount The amount to invest
+     * @param preferredProtocol Optional protocol preference (empty string for auto-select)
+     */
+    // function _invest(address token, uint256 amount, string memory preferredProtocol) internal {
+    //     if (IERC20(token).balanceOf(msg.sender) < amount) {
+    //         revert YieldAggregator__InsufficientBalance();
+    //     }
+
+    //     // Determine target protocol
+    //     string memory targetProtocol = preferredProtocol;
+    //     if (bytes(preferredProtocol).length == 0) {
+    //         targetProtocol = i_strategyManager.findBestYield(token, amount);  // What is the point of the strategy manager interface if we already have the file
+    //     }
+
+    //     if (s_protocolAdapters[targetProtocol] == address(0)) {
+    //         revert YieldAggregator__ProtocolNotSupported();
+    //     }
+
+    //     // Execute investment
+    //     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+    //     IERC20(token).safeApprove(s_protocolAdapters[targetProtocol], amount);
+
+    //     uint256 shares = IProtocolAdapter(s_protocolAdapters[targetProtocol]).deposit(amount, token);
+
+    //     // Record position
+    //     s_userPositions[msg.sender].push(
+    //         UserPosition({
+    //             protocolName: targetProtocol,
+    //             token: token,
+    //             principalAmount: amount,
+    //             currentShares: shares,
+    //             depositTimestamp: block.timestamp,
+    //             autoCompoundEnabled: true,
+    //             lastCompoundTime: block.timestamp
+    //         })
+    //     );
+
+    //     emit InvestmentMade(msg.sender, targetProtocol, token, amount, shares);
+    // }
 }

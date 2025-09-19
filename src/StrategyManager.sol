@@ -50,7 +50,5 @@ contract StrategyManager {
         // Logic to calculate the net benefit of switching strategies
     }
 
-    function _isProtocolSafe(string memory protocol) internal view returns (bool) {
-
-    }
+    function _isProtocolSafe(string memory protocol) internal view returns (bool) {}
 }
