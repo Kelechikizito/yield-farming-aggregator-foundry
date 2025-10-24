@@ -8,6 +8,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import DarkModeToggle from "./ui/DarkModeToggle";
 import Image from "next/image";
 
 export default function Header() {
@@ -52,10 +53,7 @@ export default function Header() {
               </nav>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
-              </Button>
+                <DarkModeToggle />
               <Button variant="outline" size="sm">
                 <Settings className="w-4 h-4" />
               </Button>

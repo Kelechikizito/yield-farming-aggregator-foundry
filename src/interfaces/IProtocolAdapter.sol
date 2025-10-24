@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
 interface IProtocolAdapter {
     function deposit(uint256 amount, address token) external returns (uint256 shares);

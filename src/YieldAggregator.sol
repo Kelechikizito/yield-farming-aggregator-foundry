@@ -24,7 +24,7 @@
 
 // view & pure functions
 
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -126,13 +126,13 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    // function invest(address token, uint256 amount, string memory preferredProtocol)
-    //     external
-    //     nonReentrant
-    //     invalidAmount(amount)
-    // {
-    //     _invest(token, amount, preferredProtocol);
-    // }
+    function invest(address token, uint256 amount, string memory preferredProtocol)
+        external
+        nonReentrant
+        invalidAmount(amount)
+    {
+        _invest(token, amount, preferredProtocol);
+    }
 
     /*////////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
@@ -143,40 +143,40 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
      * @param amount The amount to invest
      * @param preferredProtocol Optional protocol preference (empty string for auto-select)
      */
-    // function _invest(address token, uint256 amount, string memory preferredProtocol) internal {
-    //     if (IERC20(token).balanceOf(msg.sender) < amount) {
-    //         revert YieldAggregator__InsufficientBalance();
-    //     }
+    function _invest(address token, uint256 amount, string memory preferredProtocol) internal {
+        if (IERC20(token).balanceOf(msg.sender) < amount) {
+            revert YieldAggregator__InsufficientBalance();
+        }
 
-    //     // Determine target protocol
-    //     string memory targetProtocol = preferredProtocol;
-    //     if (bytes(preferredProtocol).length == 0) {
-    //         targetProtocol = i_strategyManager.findBestYield(token, amount);  // What is the point of the strategy manager interface if we already have the file
-    //     }
+        // Determine target protocol
+        string memory targetProtocol = preferredProtocol;
+        if (bytes(preferredProtocol).length == 0) {
+            targetProtocol = i_strategyManager.findBestYield(token, amount);  // What is the point of the strategy manager interface if we already have the file
+        }
 
-    //     if (s_protocolAdapters[targetProtocol] == address(0)) {
-    //         revert YieldAggregator__ProtocolNotSupported();
-    //     }
+        if (s_protocolAdapters[targetProtocol] == address(0)) {
+            revert YieldAggregator__ProtocolNotSupported();
+        }
 
-    //     // Execute investment
-    //     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-    //     IERC20(token).safeApprove(s_protocolAdapters[targetProtocol], amount);
+        // Execute investment
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(token).safeApprove(s_protocolAdapters[targetProtocol], amount);
 
-    //     uint256 shares = IProtocolAdapter(s_protocolAdapters[targetProtocol]).deposit(amount, token);
+        uint256 shares = IProtocolAdapter(s_protocolAdapters[targetProtocol]).deposit(amount, token);
 
-    //     // Record position
-    //     s_userPositions[msg.sender].push(
-    //         UserPosition({
-    //             protocolName: targetProtocol,
-    //             token: token,
-    //             principalAmount: amount,
-    //             currentShares: shares,
-    //             depositTimestamp: block.timestamp,
-    //             autoCompoundEnabled: true,
-    //             lastCompoundTime: block.timestamp
-    //         })
-    //     );
+        // Record position
+        s_userPositions[msg.sender].push(
+            UserPosition({
+                protocolName: targetProtocol,
+                token: token,
+                principalAmount: amount,
+                currentShares: shares,
+                depositTimestamp: block.timestamp,
+                autoCompoundEnabled: true,
+                lastCompoundTime: block.timestamp
+            })
+        );
 
-    //     emit InvestmentMade(msg.sender, targetProtocol, token, amount, shares);
-    // }
+        emit InvestmentMade(msg.sender, targetProtocol, token, amount, shares);
+    }
 }

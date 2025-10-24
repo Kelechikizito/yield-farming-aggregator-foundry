@@ -8,3 +8,4 @@ Steps to complete this contract:
 Steps to to complete the frontend:
 1. Finish frontend
 2. E2E Testing
+3. Circle Compliance Engine
