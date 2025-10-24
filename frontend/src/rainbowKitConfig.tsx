@@ -19,5 +19,5 @@ export default getDefaultConfig({
   appName: "Yield-Farming-Aggregator",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
   chains: [mainnet, optimism, arbitrum, base, zksync, sepolia, anvil],
-  ssr: false, // Since this is a static site; client-side rendering, this is disabled
+  ssr: true, // Since this is a static site; client-side rendering, this is disabled
 });

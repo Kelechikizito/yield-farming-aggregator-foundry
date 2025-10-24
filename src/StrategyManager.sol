@@ -34,11 +34,7 @@ contract StrategyManager {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    function _findBestYield(address token, uint256 amount)
-        internal
-        view
-        returns (string memory protocol, uint256 apy)
-    {
+    function _findBestYield(address token, uint256 amount) internal view returns (string memory protocol, uint256 apy) {
         // Logic to compare yields across protocols
     }
 
