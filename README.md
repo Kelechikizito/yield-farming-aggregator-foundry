@@ -206,7 +206,7 @@ Uniswap Pool: 15% APY ← Best option!
 
 ## How to Build This (Step by Step):
 
-### Step 1: Start with a Simple Comparison Website
+### Step 1: Start with a Simple Comparison Website ✅
 **What you're building:** A website that shows interest rates
 ```
 Build a webpage that displays:
@@ -221,7 +221,7 @@ Build a webpage that displays:
 - How to fetch data from APIs
 - How to display data in a table
 
-### Step 2: Add Wallet Connection
+### Step 2: Add Wallet Connection ✅
 **What you're building:** Let users connect their crypto wallet
 ```
 Add a "Connect Wallet" button that:

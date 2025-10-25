@@ -7,6 +7,7 @@ interface ProtocolRate {
   apy: number;
   tvl: number;
   risk?: string;
+  apyChange24h?: number | null;
   timestamp: number;
 }
 
@@ -15,33 +16,44 @@ interface UseProtocolRatesReturn {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  lastUpdated: number | null;
 }
 
 export function useProtocolRates(autoRefresh = true): UseProtocolRatesReturn {
   const [rates, setRates] = useState<ProtocolRate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   // ==================== FETCH FROM DEFI LLAMA ====================
   const fetchFromDefiLlama = async (): Promise<ProtocolRate[]> => {
     const response = await fetch("https://yields.llama.fi/pools");
-    const data = await response.json();
+    const { data } = await response.json();
 
-    return data.data
+    const targetProtocols = ["aave-v3", "compound-v3", "uniswap-v3"];
+
+    // ✅ Filter to only single-asset pools (exclude LP pairs)
+    const filtered = data
       .filter(
         (pool: any) =>
-          ["Compound", "Aave", "Uniswap V3"].includes(pool.project) &&
-          pool.apy > 0
+          targetProtocols.includes(pool.project) &&
+          pool.chain === "Ethereum" &&
+          pool.apy > 0 &&
+          pool.exposure === "single" && // Only single-asset pools
+          !pool.symbol?.includes("/") // Exclude LP pairs like "ETH/USDC"
       )
-      .slice(0, 20) // Limit to top 20 pools
-      .map((pool: any) => ({
-        protocol: pool.project,
-        token: pool.symbol,
-        apy: pool.apy,
-        tvl: pool.tvlUsd || 0,
-        risk: pool.exposure === "single" ? "Low" : "Medium",
-        timestamp: Date.now(),
-      }));
+      .slice(0, 30);
+
+    // ✅ Normalize and map fields
+    return filtered.map((pool: any) => ({
+      protocol: pool.project,
+      token: pool.symbol || "N/A",
+      apy: pool.apy,
+      tvl: pool.tvlUsd,
+      apyChange24h: pool.apyPct1D ?? null,
+      risk: "Low",
+      timestamp: Date.now(),
+    }));
   };
 
   // ==================== MAIN FETCH FUNCTION ====================
@@ -52,34 +64,35 @@ export function useProtocolRates(autoRefresh = true): UseProtocolRatesReturn {
     try {
       const llamaRates = await fetchFromDefiLlama();
       setRates(llamaRates.sort((a, b) => b.apy - a.apy));
+      setLastUpdated(Date.now());
     } catch (err) {
       console.error("Error fetching rates:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch rates");
 
-      // Fallback mock data (optional)
+      // ✅ Fallback mock data
       setRates([
         {
-          protocol: "Compound",
+          protocol: "compound-v3",
           token: "USDC",
-          apy: 12.5,
+          apy: 5.8,
           tvl: 2450000000,
           risk: "Low",
           timestamp: Date.now(),
         },
         {
-          protocol: "Aave",
-          token: "USDT",
-          apy: 8.2,
+          protocol: "aave-v3",
+          token: "DAI",
+          apy: 6.3,
           tvl: 5800000000,
           risk: "Low",
           timestamp: Date.now(),
         },
         {
-          protocol: "Uniswap V3",
-          token: "ETH/USDC",
-          apy: 15.8,
+          protocol: "aave-v3",
+          token: "ETH",
+          apy: 3.1,
           tvl: 890000000,
-          risk: "Medium",
+          risk: "Low",
           timestamp: Date.now(),
         },
       ]);
@@ -88,16 +101,15 @@ export function useProtocolRates(autoRefresh = true): UseProtocolRatesReturn {
     }
   }, []);
 
-  // Initial fetch
+  // ==================== INITIAL FETCH ====================
   useEffect(() => {
     fetchRates();
   }, [fetchRates]);
 
-  // Auto-refresh every 30 seconds
+  // ==================== AUTO REFRESH EVERY 5 MIN ====================
   useEffect(() => {
     if (!autoRefresh) return;
-
-    const interval = setInterval(fetchRates, 30000);
+    const interval = setInterval(fetchRates, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [autoRefresh, fetchRates]);
 
@@ -106,6 +118,7 @@ export function useProtocolRates(autoRefresh = true): UseProtocolRatesReturn {
     loading,
     error,
     refresh: fetchRates,
+    lastUpdated,
   };
 }
 
