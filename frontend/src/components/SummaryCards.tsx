@@ -51,7 +51,7 @@ export default function SummaryCards() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-accent">8.5%</div>
-          <p className="text-xs text-muted-foreground mt-1">Compound USDC</p>
+          <p className="text-xs text-muted-foreground mt-1">Compound</p>
         </CardContent>
       </Card>
     </div>
