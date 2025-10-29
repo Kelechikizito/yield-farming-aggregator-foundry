@@ -10,3 +10,4 @@ interface IProtocolAdapter {
     function claimAndCompound(uint256 shares) external returns (uint256 newShares);
     function getTVL(address token) external view returns (uint256);
 }
+

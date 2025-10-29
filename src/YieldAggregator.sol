@@ -45,6 +45,8 @@ import {IStrategyManager} from "src/interfaces/IStrategyManager.sol";
  * It supports multiple protocols through adapters, tracks user positions, and offers auto-compounding features.
  * @dev
  */
+// Vulnerability: Unchecked balance assumptions. Never rely solely on address(this).balance for critical logic.
+// Fix: Track deposits via a state variable (e.g., mapping(address => uint256) public deposits)/mapping(address => bool) public hasDeposited; instead of raw balance.
 contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                               ERRORS
@@ -57,28 +59,33 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
     //////////////////////////////////////////////////////////////*/
+    /**
+     * @dev The SafeERC20 library is used to safely handle ERC20 operations to prevent issues with non-standard ERC20 tokens, for example, USDT.
+     */
     using SafeERC20 for IERC20;
 
+    /// @dev This struct holds the information about a user's investment position in a specific protocol.
     struct UserPosition {
         string protocolName; // "compound", "aave", etc.
         address token; // USDC, DAI, etc.
         uint256 principalAmount; // Original investment
         uint256 currentShares; // Protocol-specific shares/tokens
-        uint256 depositTimestamp; // When invested
-        bool autoCompoundEnabled; // User preference
-        uint256 lastCompoundTime; // For auto-compound tracking
+        uint256 depositTimestamp; // Time When invested
+        bool autoCompoundEnabled; // User preference for auto-compounding
+        uint256 lastCompoundTime; // For auto-compound tracking(Last time rewards were reinvested)
     }
 
     //     UserPosition { This is Alice's(user) position after investing 1000 USDC in compound
     //     protocolName: "compound",           // Where her money went
     //     token: 0xA0b86a33E6....,           // USDC contract address
-    //     principalAmount: 1000000000,        // $1000 USDC (6 decimals)
+    //     principalAmount: 1000,000,000,        // $1000 USDC (6 decimals)
     //     currentShares: 47500000,            // 47.5 cUSDC tokens she received
     //     depositTimestamp: 1694567890,       // Sept 12, 2024 3:45 PM
     //     autoCompoundEnabled: true,          // She wants auto-reinvesting
     //     lastCompoundTime: 1694567890        // Last time rewards were reinvested
     // }
 
+    /// @dev This struct holds the auto-compounding settings for a user.
     struct AutoCompoundSettings {
         bool enabled; // Global auto-compound toggle
         uint256 minRewardThreshold; // Minimum rewards to trigger compound
@@ -106,6 +113,8 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*/////////////////////////////////////////////////////////
                             MODIFIERS
     /////////////////////////////////////////////////////////*/
+    /// @notice Modifier to check if amount of ERC20 token is valid (greater than zero)
+    /// @param amount The amount(ERC20 token) to validate
     modifier invalidAmount(uint256 amount) {
         if (amount == 0) revert YieldAggregator__InvalidAmount();
         _;
@@ -151,7 +160,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         // Determine target protocol
         string memory targetProtocol = preferredProtocol;
         if (bytes(preferredProtocol).length == 0) {
-            targetProtocol = i_strategyManager.findBestYield(token, amount);  // What is the point of the strategy manager interface if we already have the file
+            targetProtocol = i_strategyManager.findBestYield(token, amount); // What is the point of the strategy manager interface if we already have the file
         }
 
         if (s_protocolAdapters[targetProtocol] == address(0)) {
@@ -165,7 +174,8 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         uint256 shares = IProtocolAdapter(s_protocolAdapters[targetProtocol]).deposit(amount, token);
 
         // Record position
-        s_userPositions[msg.sender].push(
+        s_userPositions[msg.sender]
+        .push(
             UserPosition({
                 protocolName: targetProtocol,
                 token: token,

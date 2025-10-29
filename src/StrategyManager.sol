@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 /**
  * @title StrategyManager
  * @author Kelechi Kizito Ugwu
- * @notice This contract manages and optimizes investment strategies for a DeFi Yield Aggregator. Handles the logic for comparing yields and switching strategies
+ * @notice This contract manages and optimizes investment strategies for the Yield Aggregator Contract. In simpler terms, it Handles the logic for comparing yields and switching strategies
  * @dev
  */
 contract StrategyManager {
