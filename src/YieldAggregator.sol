@@ -59,6 +59,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
     //////////////////////////////////////////////////////////////*/
+
     /**
      * @dev The SafeERC20 library is used to safely handle ERC20 operations to prevent issues with non-standard ERC20 tokens, for example, USDT.
      */
@@ -75,16 +76,6 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         uint256 lastCompoundTime; // For auto-compound tracking(Last time rewards were reinvested)
     }
 
-    //     UserPosition { This is Alice's(user) position after investing 1000 USDC in compound
-    //     protocolName: "compound",           // Where her money went
-    //     token: 0xA0b86a33E6....,           // USDC contract address
-    //     principalAmount: 1000,000,000,        // $1000 USDC (6 decimals)
-    //     currentShares: 47500000,            // 47.5 cUSDC tokens she received
-    //     depositTimestamp: 1694567890,       // Sept 12, 2024 3:45 PM
-    //     autoCompoundEnabled: true,          // She wants auto-reinvesting
-    //     lastCompoundTime: 1694567890        // Last time rewards were reinvested
-    // }
-
     /// @dev This struct holds the auto-compounding settings for a user.
     struct AutoCompoundSettings {
         bool enabled; // Global auto-compound toggle
@@ -96,19 +87,20 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    // User positions tracking
+    /// @dev The mapping tracking user positions
     mapping(address user => UserPosition[]) private s_userPositions;
-
-    // Protocol adapters
-    mapping(string => address) private s_protocolAdapters;
-
-    // Auto-compound settings
+    /// @dev The mapping of protocol names to their adapter contract addresses
+    mapping(string protocolName => address adapterAddress) private s_protocolAdapters;
+    /// @dev The mapping of user addresses to their auto-compounding settings
     mapping(address user => AutoCompoundSettings) private s_userSettings;
+    IStrategyManager private immutable i_strategyManager;
 
     /*/////////////////////////////////////////////////////////
                             EVENTS
     /////////////////////////////////////////////////////////*/
+    /// @notice Emitted when a ETH is sent to the contract, i.e. When the receive function is triggered
     event Deposit(address indexed sender, uint256 amount);
+    event InvestmentMade(address indexed sender, string targetProtocol, address token, uint256 amount, uint256 shares);
 
     /*/////////////////////////////////////////////////////////
                             MODIFIERS
@@ -123,11 +115,14 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*/////////////////////////////////////////////////////////
                             CONSTRUCTOR
     /////////////////////////////////////////////////////////*/
-    constructor() Ownable(msg.sender) {}
+    constructor(address strategyManagerAddress) Ownable(msg.sender) {
+        i_strategyManager = IStrategyManager(strategyManagerAddress); // Typecasting directly in the constructor means we just use i_strategyManager directly - no need to typecast again.
+    }
 
     /*//////////////////////////////////////////////////////////////
                         RECEIVE FUNCTION
     //////////////////////////////////////////////////////////////*/
+    /// @dev The receive function allows the contract to accept ETH deposits and emits a Deposit event.
     receive() external payable {
         emit Deposit(msg.sender, msg.value);
     }
@@ -135,6 +130,10 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+    function addAdapter(string memory protocolName, address adapterAddress) external onlyOwner {
+        _addAdapter(protocolName, adapterAddress);
+    }
+
     function invest(address token, uint256 amount, string memory preferredProtocol)
         external
         nonReentrant
@@ -146,6 +145,15 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*////////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     ////////////////////////////////////////////////////////////////*/
+    /**
+     * @notice Adds a new protocol adapter to the Yield Aggregator
+     * @param protocolName The name of the protocol (e.g., "compound", "aave")
+     * @param adapterAddress The address of the protocol adapter contract
+     */
+    function _addAdapter(string memory protocolName, address adapterAddress) internal {
+        s_protocolAdapters[protocolName] = adapterAddress;
+    }
+
     /**
      * @notice Invest tokens into the best available yield protocol
      * @param token The token to invest
@@ -160,16 +168,16 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         // Determine target protocol
         string memory targetProtocol = preferredProtocol;
         if (bytes(preferredProtocol).length == 0) {
-            targetProtocol = i_strategyManager.findBestYield(token, amount); // What is the point of the strategy manager interface if we already have the file
+            targetProtocol = i_strategyManager.findBestYield(token, amount); // What is the point of the strategy manager interface if we already have the file / also i still don't understand this loc, shouldn't the interface be typecasted to an address of the contract instance?
         }
 
         if (s_protocolAdapters[targetProtocol] == address(0)) {
             revert YieldAggregator__ProtocolNotSupported();
         }
 
-        // Execute investment
+        //2. Execute investment
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(token).safeApprove(s_protocolAdapters[targetProtocol], amount);
+        // IERC20(token).safeApprove(s_protocolAdapters[targetProtocol], amount);
 
         uint256 shares = IProtocolAdapter(s_protocolAdapters[targetProtocol]).deposit(amount, token);
 
@@ -189,4 +197,8 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
 
         emit InvestmentMade(msg.sender, targetProtocol, token, amount, shares);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                    EXTERNAL VIEW & PURE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 }

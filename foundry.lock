@@ -1,8 +1,8 @@
 {
-  "lib/openzeppelin-contracts": {
+  "lib/aave-v3-core": {
     "tag": {
-      "name": "v5.4.0",
-      "rev": "c64a1edb67b6e3f4a15cca8909c9482ad33a02b0"
+      "name": "v1.19.4",
+      "rev": "b74526a7bc67a3a117a1963fc871b3eb8cea8435"
     }
   },
   "lib/chainlink-brownie-contracts": {
@@ -11,10 +11,19 @@
       "rev": "5cb41fbc9b525338b6098da5ea7dd0b7e92f89e4"
     }
   },
+  "lib/comet": {
+    "rev": "edca9128e526bbcbf36b71ccbb2e2e1d1d12de69"
+  },
   "lib/forge-std": {
     "tag": {
       "name": "v1.10.0",
       "rev": "8bbcf6e3f8f62f419e5429a0bd89331c85c37824"
+    }
+  },
+  "lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.4.0",
+      "rev": "c64a1edb67b6e3f4a15cca8909c9482ad33a02b0"
     }
   }
 }
