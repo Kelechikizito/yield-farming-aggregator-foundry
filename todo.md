@@ -17,15 +17,15 @@ Steps to to complete the frontend:
 3. Circle Compliance Engine
 
 
-```solidity
+📋 Checklist for Testing
 
-    //     UserPosition { This is Alice's(user) position after investing 1000 USDC in compound
-    //     protocolName: "compound",           // Where her money went
-    //     token: 0xA0b86a33E6....,           // USDC contract address
-    //     principalAmount: 1000,000,000,        // $1000 USDC (6 decimals)
-    //     currentShares: 47500000,            // 47.5 cUSDC tokens she received
-    //     depositTimestamp: 1694567890,       // Sept 12, 2024 3:45 PM
-    //     autoCompoundEnabled: true,          // She wants auto-reinvesting
-    //     lastCompoundTime: 1694567890        // Last time rewards were reinvested
-    // }
-```
+ Get Sepolia ETH from faucet
+ Get test USDC/DAI from Aave faucet
+ Verify Aave V3 is on Sepolia (it is! ✅)
+ Verify Compound V3 is on Sepolia (it is! ✅)
+ Setup Foundry with Sepolia RPC
+ Write adapters for Aave & Compound
+ Deploy contracts to Sepolia
+ Test deposits to both protocols
+ Test withdrawals
+ Verify on Sepolia Etherscan

@@ -41,7 +41,7 @@ import {IStrategyManager} from "src/interfaces/IStrategyManager.sol";
 /**
  * @title YieldAggregator
  * @author Kelechi Kizito Ugwu
- * @notice A DeFi Yield Aggregator contract that allows users to deposit assets into various yield-generating protocols.
+ * @notice The Yield Aggregator contract that allows users to deposit assets into various yield-generating protocols.
  * It supports multiple protocols through adapters, tracks user positions, and offers auto-compounding features.
  * @dev
  */
@@ -51,10 +51,12 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                               ERRORS
     //////////////////////////////////////////////////////////////*/
+
     error YieldAggregator__InsufficientBalance();
     error YieldAggregator__ProtocolNotSupported();
     error YieldAggregator__InvalidAmount();
     error YieldAggregator__PositionNotFound();
+    error YieldAggregator__InvalidAdapterAddress();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
@@ -87,17 +89,20 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
+
     /// @dev The mapping tracking user positions
-    mapping(address user => UserPosition[]) private s_userPositions;
+    mapping(address user => UserPosition[]) private s_userPositions; // the mapping is to an array because one user can have multiple positions
     /// @dev The mapping of protocol names to their adapter contract addresses
     mapping(string protocolName => address adapterAddress) private s_protocolAdapters;
     /// @dev The mapping of user addresses to their auto-compounding settings
     mapping(address user => AutoCompoundSettings) private s_userSettings;
+
     IStrategyManager private immutable i_strategyManager;
 
     /*/////////////////////////////////////////////////////////
                             EVENTS
     /////////////////////////////////////////////////////////*/
+
     /// @notice Emitted when a ETH is sent to the contract, i.e. When the receive function is triggered
     event Deposit(address indexed sender, uint256 amount);
     event InvestmentMade(address indexed sender, string targetProtocol, address token, uint256 amount, uint256 shares);
@@ -112,9 +117,15 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         _;
     }
 
+    modifier noneZeroAddress(address adapterAddress) {
+        if (adapterAddress == address(0)) revert YieldAggregator__InvalidAdapterAddress();
+        _;
+    }
+
     /*/////////////////////////////////////////////////////////
                             CONSTRUCTOR
     /////////////////////////////////////////////////////////*/
+
     constructor(address strategyManagerAddress) Ownable(msg.sender) {
         i_strategyManager = IStrategyManager(strategyManagerAddress); // Typecasting directly in the constructor means we just use i_strategyManager directly - no need to typecast again.
     }
@@ -122,6 +133,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                         RECEIVE FUNCTION
     //////////////////////////////////////////////////////////////*/
+
     /// @dev The receive function allows the contract to accept ETH deposits and emits a Deposit event.
     receive() external payable {
         emit Deposit(msg.sender, msg.value);
@@ -130,8 +142,18 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    function addAdapter(string memory protocolName, address adapterAddress) external onlyOwner {
+
+    function addAdapter(string memory protocolName, address adapterAddress)
+        external
+        nonReentrant
+        noneZeroAddress(adapterAddress)
+        onlyOwner
+    {
         _addAdapter(protocolName, adapterAddress);
+    }
+
+    function setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) external {
+        _setAutoCompoundSettings(enabled, minReward, maxGas, slippage);
     }
 
     function invest(address token, uint256 amount, string memory preferredProtocol)
@@ -145,6 +167,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*////////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     ////////////////////////////////////////////////////////////////*/
+
     /**
      * @notice Adds a new protocol adapter to the Yield Aggregator
      * @param protocolName The name of the protocol (e.g., "compound", "aave")
@@ -152,6 +175,12 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
      */
     function _addAdapter(string memory protocolName, address adapterAddress) internal {
         s_protocolAdapters[protocolName] = adapterAddress;
+    }
+
+    function _setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) internal {
+        s_userSettings[msg.sender] = AutoCompoundSettings({
+            enabled: enabled, minRewardThreshold: minReward, maxGasPrice: maxGas, slippageTolerance: slippage
+        });
     }
 
     /**
@@ -201,4 +230,8 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                     EXTERNAL VIEW & PURE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function getUserPositions(address user) external view returns (UserPosition[] memory) {
+        return s_userPositions[user];
+    }
 }

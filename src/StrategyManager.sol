@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 /**
  * @title StrategyManager
  * @author Kelechi Kizito Ugwu
- * @notice This contract manages and optimizes investment strategies for the Yield Aggregator Contract. In simpler terms, it Handles the logic for comparing yields and switching strategies
+ * @notice This contract manages and optimizes investment strategies for the Yield Aggregator Contract. In simpler terms, it Handles the logic for comparing yields and switching strategies.
  * @dev
  */
 contract StrategyManager {
@@ -15,6 +15,7 @@ contract StrategyManager {
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
     function findBestYield(address token, uint256 amount) external view returns (string memory protocol, uint256 apy) {
         _findBestYield(token, amount);
     }
@@ -34,6 +35,7 @@ contract StrategyManager {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+    
     function _findBestYield(address token, uint256 amount) internal view returns (string memory protocol, uint256 apy) {
         // Logic to compare yields across protocols
     }

@@ -77,7 +77,7 @@ contract StrategyManager {
    - Deposit to new protocol
    - Update position data
 
-## Building Strategy - Step by Step
+## Building Strategy - Step by Step: This is the building strategy
 
 ### **Phase 1: Core Infrastructure**
 1. **Start with the main aggregator contract**
