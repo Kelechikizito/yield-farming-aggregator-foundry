@@ -57,6 +57,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     error YieldAggregator__InvalidAmount();
     error YieldAggregator__PositionNotFound();
     error YieldAggregator__InvalidAdapterAddress();
+    error YieldAggregator__PositionNotFound();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
@@ -105,7 +106,9 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
 
     /// @notice Emitted when a ETH is sent to the contract, i.e. When the receive function is triggered
     event Deposit(address indexed sender, uint256 amount);
-    event InvestmentMade(address indexed sender, string targetProtocol, address token, uint256 amount, uint256 shares);
+    event InvestmentMade(
+        address indexed sender, string targetProtocol, address indexed token, uint256 amount, uint256 shares
+    );
 
     /*/////////////////////////////////////////////////////////
                             MODIFIERS
@@ -164,6 +167,10 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         _invest(token, amount, preferredProtocol);
     }
 
+    function withdraw(uint256 positionIndex) external nonReentrant {
+        _withdraw(positionIndex);
+    }
+
     /*////////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     ////////////////////////////////////////////////////////////////*/
@@ -177,6 +184,10 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         s_protocolAdapters[protocolName] = adapterAddress;
     }
 
+    /**
+     * @notice
+     * @param
+     */
     function _setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) internal {
         s_userSettings[msg.sender] = AutoCompoundSettings({
             enabled: enabled, minRewardThreshold: minReward, maxGasPrice: maxGas, slippageTolerance: slippage
@@ -227,11 +238,36 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         emit InvestmentMade(msg.sender, targetProtocol, token, amount, shares);
     }
 
+    /**
+     * @notice CEI
+     * @param positionIndex
+     */
+    function _withdraw(uint256 positionIndex) internal {
+        UserPosition[] storage userInvestmentPositions = s_userPositions[msg.sender];
+
+        if (positionIndex >= userInvestmentPositions.length) {
+            revert YieldAggregator__PositionNotFound();
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                     EXTERNAL VIEW & PURE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev A getter function that returns all investment positions for a user.
+     * @param user The address of the user whose positions are to be retrieved.
+     * @return An array of UserPosition structs representing the user's investment positions.
+     */
     function getUserPositions(address user) external view returns (UserPosition[] memory) {
         return s_userPositions[user];
+    }
+
+    /**
+     * @dev A getter function that returns the total number of investment positions for a user.
+     * @return The length of the user's investment positions array, i.e., the total number of investment positions.
+     */
+    function getUserPositionCount(address user) external view returns (uint256) {
+        return s_userPositions[user].length;
     }
 }
