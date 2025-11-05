@@ -35,9 +35,10 @@ contract StrategyManager {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    
+
     function _findBestYield(address token, uint256 amount) internal view returns (string memory protocol, uint256 apy) {
         // Logic to compare yields across protocols
+        // This code might not need to return the apy, but that would be worked on later
     }
 
     function _calculateSwitchBenefit(address user, uint256 positionIndex, string memory newProtocol)

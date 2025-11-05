@@ -57,7 +57,8 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     error YieldAggregator__InvalidAmount();
     error YieldAggregator__PositionNotFound();
     error YieldAggregator__InvalidAdapterAddress();
-    error YieldAggregator__PositionNotFound();
+    error YieldAggregator__InvalidToken();
+    error YieldAggregator__InvalidSharesReceived();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
@@ -65,6 +66,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
 
     /**
      * @dev The SafeERC20 library is used to safely handle ERC20 operations to prevent issues with non-standard ERC20 tokens, for example, USDT.
+     * @notice This means for every IERC20 token, we can now call the safeTransfer, safeTransferFrom, and safeApprove functions provided by the SafeERC20 library.
      */
     using SafeERC20 for IERC20;
 
@@ -109,19 +111,26 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     event InvestmentMade(
         address indexed sender, string targetProtocol, address indexed token, uint256 amount, uint256 shares
     );
+    event Withdrawal(address indexed sender, string indexed protocolName, uint256 indexed amount);
 
     /*/////////////////////////////////////////////////////////
                             MODIFIERS
     /////////////////////////////////////////////////////////*/
+
     /// @notice Modifier to check if amount of ERC20 token is valid (greater than zero)
     /// @param amount The amount(ERC20 token) to validate
-    modifier invalidAmount(uint256 amount) {
+    modifier validAmount(uint256 amount) {
         if (amount == 0) revert YieldAggregator__InvalidAmount();
         _;
     }
 
     modifier noneZeroAddress(address adapterAddress) {
         if (adapterAddress == address(0)) revert YieldAggregator__InvalidAdapterAddress();
+        _;
+    }
+
+    modifier validToken(address token) {
+        if (token == address(0)) revert YieldAggregator__InvalidToken();
         _;
     }
 
@@ -159,16 +168,17 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         _setAutoCompoundSettings(enabled, minReward, maxGas, slippage);
     }
 
+    function withdraw(uint256 positionIndex) external nonReentrant {
+        _withdraw(positionIndex);
+    }
+
     function invest(address token, uint256 amount, string memory preferredProtocol)
         external
         nonReentrant
-        invalidAmount(amount)
+        validAmount(amount)
+        validToken(token)
     {
         _invest(token, amount, preferredProtocol);
-    }
-
-    function withdraw(uint256 positionIndex) external nonReentrant {
-        _withdraw(positionIndex);
     }
 
     /*////////////////////////////////////////////////////////////////
@@ -185,8 +195,11 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     }
 
     /**
-     * @notice
-     * @param
+     * @dev Sets the auto-compounding settings for the caller.
+     * @param enabled true to enable auto-compounding, false to disable
+     * @param minReward the minimum reward threshold to trigger auto-compounding
+     * @param maxGas the maximum gas price the user is willing to pay for auto-compounding
+     * @param slippage the acceptable slippage tolerance in basis points (bps)
      */
     function _setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) internal {
         s_userSettings[msg.sender] = AutoCompoundSettings({
@@ -195,59 +208,100 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     }
 
     /**
+     * @notice Withdraw funds from a specific investment position
+     * @dev This withdraw function meticulously follows the CEI pattern to double down on a potential reentrancy vulnerability, albeit, its external implementation is protected by the nonReentrant modifier.
+     * @param positionIndex The index of the user's investment position to withdraw from
+     */
+    function _withdraw(uint256 positionIndex) internal {
+        // ✅ CHECKS
+        // STEP 1: this line retrieves all investment positions for the user calling the function.
+        UserPosition[] storage userInvestmentPositions = s_userPositions[msg.sender];
+        // STEP 2: position validation, This line validates if the investment position exists for the user.
+        if (positionIndex >= userInvestmentPositions.length) {
+            revert YieldAggregator__PositionNotFound();
+        }
+
+        // Step 3: this line gets the position details for the specified index.
+        UserPosition memory position = userInvestmentPositions[positionIndex]; // this line remains holds the same variable even after swap and pop removal because it has already been defined in memory. defining it in memory makes a copy of the intended struct rather than referencing the original/storage struct so any changes to the storage array won't affect this copy.
+        // STEP 4: Get the adapter (the bridge to that protocol)
+        address adapter = s_protocolAdapters[position.protocolName];
+        if (adapter == address(0)) {
+            revert YieldAggregator__ProtocolNotSupported();
+        }
+
+        // ✅ EFFECTS
+        // STEP 5: Remove the position from the user's array
+        // These lines affect the STORAGE (blockchain), NOT the memory copy:
+        userInvestmentPositions[positionIndex] = userInvestmentPositions[userInvestmentPositions.length - 1];
+        userInvestmentPositions.pop();
+
+        // ✅ INTERACTIONS
+        // STEP 6: Call the withdraw function on the adapter
+        uint256 amountWithdrawn = IProtocolAdapter(adapter).withdraw(position.currentShares, position.token);
+
+        // STEP 7: Transfer the withdrawn amount back to the user
+        IERC20(position.token).safeTransfer(msg.sender, amountWithdrawn);
+
+        // ✅ EVENT
+        emit Withdrawal(msg.sender, position.protocolName, amountWithdrawn);
+    }
+
+    /**
      * @notice Invest tokens into the best available yield protocol
+     * @dev This function negates CEI pattern because the deposit function in the adapter needs the tokens to be already in the contract before it can proceed.
      * @param token The token to invest
      * @param amount The amount to invest
      * @param preferredProtocol Optional protocol preference (empty string for auto-select)
      */
     function _invest(address token, uint256 amount, string memory preferredProtocol) internal {
+        // ✅ CHECKS
+        // STEP 1: Check if the user's token balance is sufficient
         if (IERC20(token).balanceOf(msg.sender) < amount) {
             revert YieldAggregator__InsufficientBalance();
         }
 
-        // Determine target protocol
+        // STEP 2: Determine target protocol
         string memory targetProtocol = preferredProtocol;
+        // this conditional means that if a user doesn't provide a preferredProtocol, i.e, if the preferredProtocol is empty, the strategymanager should find the best protocol for the particular token
         if (bytes(preferredProtocol).length == 0) {
-            targetProtocol = i_strategyManager.findBestYield(token, amount); // What is the point of the strategy manager interface if we already have the file / also i still don't understand this loc, shouldn't the interface be typecasted to an address of the contract instance?
+            targetProtocol = i_strategyManager.findBestYield(token, amount);
         }
 
-        if (s_protocolAdapters[targetProtocol] == address(0)) {
+        // STEP 3: Check if the protocol adapter exists in your mapping
+        address adapter = s_protocolAdapters[targetProtocol];
+        if (adapter == address(0)) {
             revert YieldAggregator__ProtocolNotSupported();
         }
 
-        //2. Execute investment
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        // IERC20(token).safeApprove(s_protocolAdapters[targetProtocol], amount);
+        // ✅ INTERACTIONS
+        // STEP 4: Transfer tokens from user to this contract
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount); // Only pass from, to, and amount — the token is already bound by using SafeERC20 for IERC20// Get the tokens from the user
+        // STEP 5: Approves the adapter to spend the tokens
+        IERC20(token).forceApprove(adapter, amount); // Give permission to the adapter to use those tokens
+        // STEP 6: The adapter deposits the tokens into the respective protocols to get back shares
+        uint256 shares = IProtocolAdapter(adapter).deposit(amount, token); // This calls the adapter to deposit (it will use its permission)
+        uint256 invalidShares = 0;
+        if (shares == invalidShares) {
+            revert YieldAggregator__InvalidSharesReceived();
+        } // isn't it possible for shares to be zero?
 
-        uint256 shares = IProtocolAdapter(s_protocolAdapters[targetProtocol]).deposit(amount, token);
-
-        // Record position
+        // ✅ EFFECTS
+        // STEP 7: Record the position
         s_userPositions[msg.sender]
         .push(
             UserPosition({
                 protocolName: targetProtocol,
                 token: token,
                 principalAmount: amount,
-                currentShares: shares,
+                currentShares: shares, // Record the position with the shares you got back
                 depositTimestamp: block.timestamp,
                 autoCompoundEnabled: true,
                 lastCompoundTime: block.timestamp
             })
         );
 
+        // STEP 8: Emit event
         emit InvestmentMade(msg.sender, targetProtocol, token, amount, shares);
-    }
-
-    /**
-     * @notice CEI
-     * @param positionIndex
-     */
-    function _withdraw(uint256 positionIndex) internal {
-        UserPosition[] storage userInvestmentPositions = s_userPositions[msg.sender];
-
-        if (positionIndex >= userInvestmentPositions.length) {
-            revert YieldAggregator__PositionNotFound();
-        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -269,5 +323,19 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
      */
     function getUserPositionCount(address user) external view returns (uint256) {
         return s_userPositions[user].length;
+    }
+
+    /**
+     * @dev This function retrieves a specific user position by its index.
+     * @param user The address of the user whose position is to be retrieved.
+     * @param index The index of the position in the user's positions array.
+     * @return The UserPosition struct at the specified index.
+     * @notice Get a specific position by index
+     */
+    function getUserPositionByIndex(address user, uint256 index) external view returns (UserPosition memory) {
+        if (index >= s_userPositions[user].length) {
+            revert YieldAggregator__PositionNotFound();
+        }
+        return s_userPositions[user][index];
     }
 }

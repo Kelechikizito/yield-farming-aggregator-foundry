@@ -13,8 +13,9 @@ Steps to complete this contract:
 
 Steps to to complete the frontend:
 1. Finish frontend
-2. E2E Testing and U nit testing
-3. Circle Compliance Engine
+2. Should I have a landing page?
+3. E2E Testing and Unit testing
+4. Circle Compliance Engine
 
 
 📋 Checklist for Testing
@@ -29,3 +30,36 @@ Steps to to complete the frontend:
  Test deposits to both protocols
  Test withdrawals
  Verify on Sepolia Etherscan
+
+ // User (via frontend): "Show me my investments"
+positions = contract.getUserPositions(myAddress)
+
+// Returns:
+[
+  {
+    protocolName: "compound",
+    token: "0x123...USDC",
+    principalAmount: 1000,
+    currentShares: 500,
+    depositTimestamp: 1699999999
+  },
+  {
+    protocolName: "aave", 
+    token: "0x456...DAI",
+    principalAmount: 2000,
+    currentShares: 1000,
+    depositTimestamp: 1700000000
+  }
+]
+```
+
+**Step 2:** Frontend displays this nicely:
+```
+Your Positions:
+┌────────┬──────────┬───────┬─────────┬──────────┐
+│ Index  │ Protocol │ Token │ Amount  │ Action   │
+├────────┼──────────┼───────┼─────────┼──────────┤
+│ 0      │ Compound │ USDC  │ 1000    │ [Withdraw]│ ← Button calls withdraw(0)
+│ 1      │ Aave     │ DAI   │ 2000    │ [Withdraw]│ ← Button calls withdraw(1)
+└────────┴──────────┴───────┴─────────┴──────────┘
+
