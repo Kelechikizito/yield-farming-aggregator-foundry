@@ -59,6 +59,9 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     error YieldAggregator__InvalidAdapterAddress();
     error YieldAggregator__InvalidToken();
     error YieldAggregator__InvalidSharesReceived();
+    error YieldAggregator__ETHDepositNotSupported();
+    error YieldAggregator__InsufficientETHBalance();
+    error YieldAggregator__FailedETHWithdrawal();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
@@ -106,12 +109,13 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
                             EVENTS
     /////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a ETH is sent to the contract, i.e. When the receive function is triggered
-    event Deposit(address indexed sender, uint256 amount);
+    // / @notice Emitted when a ETH is sent to the contract, i.e. When the receive function is triggered
+    // event Deposit(address indexed sender, uint256 amount);
     event InvestmentMade(
-        address indexed sender, string targetProtocol, address indexed token, uint256 amount, uint256 shares
+        address indexed sender, string targetProtocol, address indexed token, uint256 amount, uint256 indexed shares
     );
     event Withdrawal(address indexed sender, string indexed protocolName, uint256 indexed amount);
+    event ETHWithdrawal(address indexed to, uint256 indexed amount);
 
     /*/////////////////////////////////////////////////////////
                             MODIFIERS
@@ -138,7 +142,10 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
                             CONSTRUCTOR
     /////////////////////////////////////////////////////////*/
 
-    constructor(address strategyManagerAddress) Ownable(msg.sender) {
+    constructor(address strategyManagerAddress)
+        /* can't we find a way to validate that this is a nonZero address */
+        Ownable(msg.sender)
+    {
         i_strategyManager = IStrategyManager(strategyManagerAddress); // Typecasting directly in the constructor means we just use i_strategyManager directly - no need to typecast again.
     }
 
@@ -146,14 +153,23 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
                         RECEIVE FUNCTION
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev The receive function allows the contract to accept ETH deposits and emits a Deposit event.
+    /// @dev The receive function doesn't accept ETH, meaning this contract doesn't accept ETH.
     receive() external payable {
-        emit Deposit(msg.sender, msg.value);
+        revert YieldAggregator__ETHDepositNotSupported();
     }
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Its internal function withdraws ETH from the contract to a specified address. Although this contract can't receive ETH, this function is added in case this contract has been specified in a selfdestruct. (selfdestruct edge case)
+     * @param to The address to send the ETH to
+     * @param amount The amount of ETH to withdraw
+     */
+    function withdrawETH(address payable to, uint256 amount) external nonReentrant onlyOwner {
+        _withdrawETH(to, amount);
+    }
 
     function addAdapter(string memory protocolName, address adapterAddress)
         external
@@ -186,6 +202,28 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     ////////////////////////////////////////////////////////////////*/
 
     /**
+     * @dev Internal function to withdraw ETH from the contract to a specified address. Although this contract can't receive ETH, this function is added in case this contract has been specified in a selfdestruct. (selfdestruct edge case)
+     * @param to The address to send the ETH to
+     * @param amount The amount of ETH to withdraw
+     */
+    function _withdrawETH(address payable to, uint256 amount) internal {
+        // CHECKS
+        if (address(this).balance < amount) {
+            revert YieldAggregator__InsufficientETHBalance();
+        }
+
+        // EFFECTS
+
+        // INTERACTIONS
+        (bool success,) = to.call{value: amount}("");
+        if (!success) {
+            revert YieldAggregator__FailedETHWithdrawal();
+        }
+
+        emit ETHWithdrawal(to, amount);
+    }
+
+    /**
      * @notice Adds a new protocol adapter to the Yield Aggregator
      * @param protocolName The name of the protocol (e.g., "compound", "aave")
      * @param adapterAddress The address of the protocol adapter contract
@@ -210,7 +248,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /**
      * @notice Withdraw funds from a specific investment position
      * @dev This withdraw function meticulously follows the CEI pattern to double down on a potential reentrancy vulnerability, albeit, its external implementation is protected by the nonReentrant modifier.
-     * @param positionIndex The index of the user's investment position to withdraw from
+     * @param positionIndex The index of the user's investment position to withdraw from. You can find it externally by calling `getUserPositions` or `getUserPositionCount`.
      */
     function _withdraw(uint256 positionIndex) internal {
         // ✅ CHECKS
@@ -280,6 +318,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         IERC20(token).forceApprove(adapter, amount); // Give permission to the adapter to use those tokens
         // STEP 6: The adapter deposits the tokens into the respective protocols to get back shares
         uint256 shares = IProtocolAdapter(adapter).deposit(amount, token); // This calls the adapter to deposit (it will use its permission)
+
         uint256 invalidShares = 0;
         if (shares == invalidShares) {
             revert YieldAggregator__InvalidSharesReceived();
