@@ -320,9 +320,14 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         uint256 shares = IProtocolAdapter(adapter).deposit(amount, token); // This calls the adapter to deposit (it will use its permission)
 
         uint256 invalidShares = 0;
+        uint256 MIN_SHARES = 1000;
         if (shares == invalidShares) {
             revert YieldAggregator__InvalidSharesReceived();
         } // isn't it possible for shares to be zero?
+        if (shares < amount / MIN_SHARES) {
+            // Less than 0.1% of deposit
+            revert YieldAggregator__InvalidSharesReceived();
+        }
 
         // ✅ EFFECTS
         // STEP 7: Record the position
