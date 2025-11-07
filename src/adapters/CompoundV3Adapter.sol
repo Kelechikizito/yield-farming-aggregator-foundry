@@ -14,9 +14,9 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * @dev
  */
 // Q: Will I need to add access control for which contracts can call these functions?
-contract CompoundV3Adapter is IProtocolAdapter {
+abstract contract CompoundV3Adapter is IProtocolAdapter {
     error CompoundV3Adapter__InvalidCometAddress();
-    error CompoundV3Adapter__InvalidYieldAggregatorAddress();
+    // error CompoundV3Adapter__InvalidYieldAggregatorAddress();
     // error CompoundV3Adapter__UnauthorizedCaller();
 
     using SafeERC20 for IERC20;
@@ -31,7 +31,9 @@ contract CompoundV3Adapter is IProtocolAdapter {
     //     _;
     // }
 
-    constructor(address _comet, /*address _yieldAggregator*/) {
+    constructor(
+        address _comet /*,address _yieldAggregator*/
+    ) {
         if (_comet == address(0)) revert CompoundV3Adapter__InvalidCometAddress();
         // if (_yieldAggregator == address(0)) revert CompoundV3Adapter__InvalidYieldAggregatorAddress();
         i_comet = IComet(_comet);
@@ -89,7 +91,7 @@ contract CompoundV3Adapter is IProtocolAdapter {
     }
 
     function getCometAddress() external view returns (address) {
-    return address(i_comet);
-}
+        return address(i_comet);
+    }
 }
 

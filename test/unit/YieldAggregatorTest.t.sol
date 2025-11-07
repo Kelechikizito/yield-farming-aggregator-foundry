@@ -8,7 +8,6 @@ import {StrategyManager} from "src/StrategyManager.sol";
 // import {MockAavePool} from "./mocks/MockAavePool.sol";
 // import {MockCompound} from "./mocks/MockCompound.sol";
 
-
 contract YieldAggregatorTest is Test {
     YieldAggregator yieldAggregator;
     StrategyManager strategyManager;

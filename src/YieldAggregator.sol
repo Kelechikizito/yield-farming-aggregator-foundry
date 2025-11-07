@@ -116,6 +116,10 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     );
     event Withdrawal(address indexed sender, string indexed protocolName, uint256 indexed amount);
     event ETHWithdrawal(address indexed to, uint256 indexed amount);
+    event AdapterAdded(string indexed protocolName, address indexed adapterAddress);
+    event AutoCompoundSettingsChanged(
+        address indexed sender, bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage
+    );
 
     /*/////////////////////////////////////////////////////////
                             MODIFIERS
@@ -142,10 +146,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
                             CONSTRUCTOR
     /////////////////////////////////////////////////////////*/
 
-    constructor(address strategyManagerAddress)
-        /* can't we find a way to validate that this is a nonZero address */
-        Ownable(msg.sender)
-    {
+    constructor(address strategyManagerAddress) Ownable(msg.sender) noneZeroAddress(strategyManagerAddress) {
         i_strategyManager = IStrategyManager(strategyManagerAddress); // Typecasting directly in the constructor means we just use i_strategyManager directly - no need to typecast again.
     }
 
@@ -230,6 +231,8 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
      */
     function _addAdapter(string memory protocolName, address adapterAddress) internal {
         s_protocolAdapters[protocolName] = adapterAddress;
+
+        emit AdapterAdded(protocolName, adapterAddress);
     }
 
     /**
@@ -243,6 +246,8 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         s_userSettings[msg.sender] = AutoCompoundSettings({
             enabled: enabled, minRewardThreshold: minReward, maxGasPrice: maxGas, slippageTolerance: slippage
         });
+
+        emit AutoCompoundSettingsChanged(msg.sender, enabled, minReward, maxGas, slippage);
     }
 
     /**
