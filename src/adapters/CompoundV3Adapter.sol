@@ -86,6 +86,7 @@ abstract contract CompoundV3Adapter is IProtocolAdapter {
         return amount;
     }
 
+    // returns the total balance of shares the adapter has in Comet
     function getBalance() external view returns (uint256) {
         return i_comet.balanceOf(address(this));
     }

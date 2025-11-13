@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+pragma solidity 0.8.26;
 
 // Layout of the contract file:
 // version
@@ -23,8 +24,6 @@
 // private
 
 // view & pure functions
-
-pragma solidity 0.8.26;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -112,7 +111,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     // / @notice Emitted when a ETH is sent to the contract, i.e. When the receive function is triggered
     // event Deposit(address indexed sender, uint256 amount);
     event InvestmentMade(
-        address indexed sender, string targetProtocol, address indexed token, uint256 amount, uint256 indexed shares
+        address indexed sender, string indexed targetProtocol, address indexed token, uint256 amount, uint256 shares
     );
     event Withdrawal(address indexed sender, string indexed protocolName, uint256 indexed amount);
     event ETHWithdrawal(address indexed to, uint256 indexed amount);
@@ -274,13 +273,14 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
 
         // ✅ EFFECTS
         // STEP 5: Remove the position from the user's array
+        // to-do: convert to an internal function
         // These lines affect the STORAGE (blockchain), NOT the memory copy:
         userInvestmentPositions[positionIndex] = userInvestmentPositions[userInvestmentPositions.length - 1];
         userInvestmentPositions.pop();
 
         // ✅ INTERACTIONS
         // STEP 6: Call the withdraw function on the adapter
-        uint256 amountWithdrawn = IProtocolAdapter(adapter).withdraw(position.currentShares, position.token);
+        uint256 amountWithdrawn = IProtocolAdapter(adapter).withdraw(position.currentShares, position.token); // position.currentShares is the single source of truth for "how much can this user withdraw
 
         // STEP 7: Transfer the withdrawn amount back to the user
         IERC20(position.token).safeTransfer(msg.sender, amountWithdrawn);
@@ -325,14 +325,14 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         uint256 shares = IProtocolAdapter(adapter).deposit(amount, token); // This calls the adapter to deposit (it will use its permission)
 
         uint256 invalidShares = 0;
-        uint256 MIN_SHARES = 1000;
+        // uint256 MIN_SHARES = 1000;
         if (shares == invalidShares) {
             revert YieldAggregator__InvalidSharesReceived();
         } // isn't it possible for shares to be zero?
-        if (shares < amount / MIN_SHARES) {
-            // Less than 0.1% of deposit
-            revert YieldAggregator__InvalidSharesReceived();
-        }
+        // if (shares < amount / MIN_SHARES) {
+        //     // Less than 0.1% of deposit
+        //     revert YieldAggregator__InvalidSharesReceived();
+        // }
 
         // ✅ EFFECTS
         // STEP 7: Record the position
@@ -344,7 +344,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
                 principalAmount: amount,
                 currentShares: shares, // Record the position with the shares you got back
                 depositTimestamp: block.timestamp,
-                autoCompoundEnabled: true,
+                autoCompoundEnabled: true, // Default enabled
                 lastCompoundTime: block.timestamp
             })
         );
