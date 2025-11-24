@@ -9,6 +9,7 @@ import {IProtocolAdapter} from "src/interfaces/IProtocolAdapter.sol";
  * @notice Adapter contract for interacting with the Aave V3 protocol.
  * @dev
  */
+// note: The aave pool contract is the main entry point into the AAVE protocol
 abstract contract AaveV3Adapter is IProtocolAdapter {
     function deposit(uint256 amount, address token) external returns (uint256 shares) {}
 }

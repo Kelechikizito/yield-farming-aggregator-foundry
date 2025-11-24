@@ -5,6 +5,12 @@
       "rev": "b74526a7bc67a3a117a1963fc871b3eb8cea8435"
     }
   },
+  "lib/aave-v3-origin": {
+    "tag": {
+      "name": "v3.5.0",
+      "rev": "6138e1fda45884b6547d094a1ddeef43dcab4977"
+    }
+  },
   "lib/chainlink-brownie-contracts": {
     "tag": {
       "name": "1.3.0",

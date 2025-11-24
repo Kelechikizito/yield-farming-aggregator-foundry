@@ -7,6 +7,10 @@ import {IComet} from "src/interfaces/IComet.sol"; // importing the interface is 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+// note: The Compound Main Proxy Contract interacts with the Compound III. It Handles all deposits (supply) and withdrawals. It Calculates your earnings and Manages borrowing.
+// note: the reward contract is useful for the auto-compound feature.
+// note: the bulker contract for advanced features
+
 /**
  * @title CompoundV3Adapter
  * @author Kelechi Kizito Ugwu
@@ -15,6 +19,13 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  */
 // Q: Will I need to add access control for which contracts can call these functions?
 abstract contract CompoundV3Adapter is IProtocolAdapter {
+    //     supply()
+
+    // withdraw()
+
+    // getAssetInfo()
+
+    // balanceOf()
     error CompoundV3Adapter__InvalidCometAddress();
     // error CompoundV3Adapter__InvalidYieldAggregatorAddress();
     // error CompoundV3Adapter__UnauthorizedCaller();
@@ -90,6 +101,9 @@ abstract contract CompoundV3Adapter is IProtocolAdapter {
     function getBalance() external view returns (uint256) {
         return i_comet.balanceOf(address(this));
     }
+
+    // function getAssetInfo(uint8 i) external view returns (AssetInfo memory) {
+    // }
 
     function getCometAddress() external view returns (address) {
         return address(i_comet);
