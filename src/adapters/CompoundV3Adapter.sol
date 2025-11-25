@@ -10,6 +10,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 // note: The Compound Main Proxy Contract interacts with the Compound III. It Handles all deposits (supply) and withdrawals. It Calculates your earnings and Manages borrowing.
 // note: the reward contract is useful for the auto-compound feature.
 // note: the bulker contract for advanced features
+// note: Each token has its own separate Comet market. Compound V3 created isolated markets - meaning each token (USDC, USDT, ETH, etc.) has its own separate Comet contract.
 
 /**
  * @title CompoundV3Adapter
@@ -18,7 +19,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * @dev
  */
 // Q: Will I need to add access control for which contracts can call these functions?
-abstract contract CompoundV3Adapter is IProtocolAdapter {
+// note: this contract is abstract because it hasn't implemented ALL the interface functions
+contract CompoundV3Adapter is IProtocolAdapter {
     //     supply()
 
     // withdraw()
@@ -32,6 +34,7 @@ abstract contract CompoundV3Adapter is IProtocolAdapter {
 
     using SafeERC20 for IERC20;
 
+    // this interface will be typecasted to the compound main contract address. The main contract address in this case, will be dependent on the network you choose, and token.
     IComet private immutable i_comet;
     // address private immutable i_yieldAggregator;
 

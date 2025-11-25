@@ -387,4 +387,6 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         }
         return s_userPositions[user][index];
     }
+
+    // To-Do: Add getter function for Adapter Address by Protocol Name
 }

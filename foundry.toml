@@ -8,5 +8,6 @@ remappings = [
     "foundry-devops/=lib/foundry-devops/",
     "@comet/contracts=lib/comet/contracts"
 ]
+rpc_endpoints = { sepolia_eth = "${SEPOLIA_RPC_URL}", arb = "${ARBITRUM_SEPOLIA_RPC_URL}", zksync = "${ZKSYNC_SEPOLIA_RPC_URL}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
