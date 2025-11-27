@@ -171,6 +171,10 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         _withdrawETH(to, amount);
     }
 
+    /**
+     * @dev
+     * 
+     */
     function addAdapter(string memory protocolName, address adapterAddress)
         external
         nonReentrant
