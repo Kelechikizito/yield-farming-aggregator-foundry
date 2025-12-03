@@ -98,6 +98,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /// @dev The mapping tracking user positions
     mapping(address user => UserPosition[]) private s_userPositions; // the mapping is to an array because one user can have multiple positions
     /// @dev The mapping of protocol names to their adapter contract addresses
+    /// @dev Maps user => token => Claim details (amount, timestamp, merkleRoot)
     mapping(string protocolName => address adapterAddress) private s_protocolAdapters;
     /// @dev The mapping of user addresses to their auto-compounding settings
     mapping(address user => AutoCompoundSettings) private s_userSettings;
@@ -111,7 +112,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     // / @notice Emitted when a ETH is sent to the contract, i.e. When the receive function is triggered
     // event Deposit(address indexed sender, uint256 amount);
     event InvestmentMade(
-        address indexed sender, string indexed targetProtocol, address indexed token, uint256 amount, uint256 shares
+        address indexed sender, string targetProtocol, address indexed token, uint256 amount, uint256 indexed shares
     );
     event Withdrawal(address indexed sender, string indexed protocolName, uint256 indexed amount);
     event ETHWithdrawal(address indexed to, uint256 indexed amount);
@@ -173,7 +174,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
 
     /**
      * @dev
-     * 
+     *
      */
     function addAdapter(string memory protocolName, address adapterAddress)
         external
@@ -197,8 +198,9 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         nonReentrant
         validAmount(amount)
         validToken(token)
+        returns (uint256 positionIndex)
     {
-        _invest(token, amount, preferredProtocol);
+        positionIndex = _invest(token, amount, preferredProtocol);
     }
 
     /*////////////////////////////////////////////////////////////////
@@ -256,11 +258,11 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /**
      * @notice Withdraw funds from a specific investment position
      * @dev This withdraw function meticulously follows the CEI pattern to double down on a potential reentrancy vulnerability, albeit, its external implementation is protected by the nonReentrant modifier.
-     * @param positionIndex The index of the user's investment position to withdraw from. You can find it externally by calling `getUserPositions` or `getUserPositionCount`.
+     * @param positionIndex The index of the user's investment position to withdraw from.
      */
     function _withdraw(uint256 positionIndex) internal {
         // ✅ CHECKS
-        // STEP 1: this line retrieves all investment positions for the user calling the function.
+        // STEP 1: this line retrieves all investment positions for the user calling the function. It's more or less a way to control access of the function: a.k.a. ACCESS CONTROL CHECKS
         UserPosition[] storage userInvestmentPositions = s_userPositions[msg.sender];
         // STEP 2: position validation, This line validates if the investment position exists for the user.
         if (positionIndex >= userInvestmentPositions.length) {
@@ -284,7 +286,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
 
         // ✅ INTERACTIONS
         // STEP 6: Call the withdraw function on the adapter
-        uint256 amountWithdrawn = IProtocolAdapter(adapter).withdraw(position.currentShares, position.token); // position.currentShares is the single source of truth for "how much can this user withdraw
+        uint256 amountWithdrawn = IProtocolAdapter(adapter).withdraw(position.token, position.currentShares); // position.currentShares is the single source of truth for "how much can this user withdraw, is it really? What if user accrues interests won't the shares increase over time?
 
         // STEP 7: Transfer the withdrawn amount back to the user
         IERC20(position.token).safeTransfer(msg.sender, amountWithdrawn);
@@ -300,7 +302,10 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
      * @param amount The amount to invest
      * @param preferredProtocol Optional protocol preference (empty string for auto-select)
      */
-    function _invest(address token, uint256 amount, string memory preferredProtocol) internal {
+    function _invest(address token, uint256 amount, string memory preferredProtocol)
+        internal
+        returns (uint256 positionIndex)
+    {
         // ✅ CHECKS
         // STEP 1: Check if the user's token balance is sufficient
         if (IERC20(token).balanceOf(msg.sender) < amount) {
@@ -326,7 +331,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         // STEP 5: Approves the adapter to spend the tokens
         IERC20(token).forceApprove(adapter, amount); // Give permission to the adapter to use those tokens
         // STEP 6: The adapter deposits the tokens into the respective protocols to get back shares
-        uint256 shares = IProtocolAdapter(adapter).deposit(amount, token); // This calls the adapter to deposit (it will use its permission)
+        uint256 shares = IProtocolAdapter(adapter).deposit(token, amount); // This calls the adapter to deposit (it will use its permission)
 
         uint256 invalidShares = 0;
         // uint256 MIN_SHARES = 1000;
@@ -339,9 +344,11 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         // }
 
         // ✅ EFFECTS
-        // STEP 7: Record the position
-        s_userPositions[msg.sender]
-        .push(
+        // STEP 7: Get the user position index and Record the position
+        // @notice this positioning before updating the array is vital becuase the length of the array increases only after the push operation, moreover, array indexing starts from 0
+        positionIndex = s_userPositions[msg.sender].length;
+
+        s_userPositions[msg.sender].push(
             UserPosition({
                 protocolName: targetProtocol,
                 token: token,
@@ -360,6 +367,38 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                     EXTERNAL VIEW & PURE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Get the current value of a user's position including accrued yield
+     * @param user The user's address
+     * @param positionIndex The index of the position
+     * @return currentValue The current value in underlying tokens
+     */
+    function getPositionValue(address user, uint256 positionIndex) external view returns (uint256 currentValue) {
+        UserPosition memory position = s_userPositions[user][positionIndex];
+
+        address adapter = s_protocolAdapters[position.protocolName];
+        if (adapter == address(0)) {
+            revert YieldAggregator__ProtocolNotSupported();
+        }
+
+        // Query the adapter for current value of shares
+        currentValue = IProtocolAdapter(adapter).getShareValue(position.token, position.currentShares);
+    }
+
+    /**
+     * @notice Get the yield earned on a position
+     * @param user The user's address
+     * @param positionIndex The index of the position
+     * @return yieldEarned The amount of yield earned
+     */
+    function getYieldEarned(address user, uint256 positionIndex) external view returns (uint256 yieldEarned) {
+        UserPosition memory position = s_userPositions[user][positionIndex];
+        uint256 currentValue = this.getPositionValue(user, positionIndex);
+
+        // Yield = Current Value - Principal
+        yieldEarned = currentValue > position.principalAmount ? currentValue - position.principalAmount : 0;
+    }
 
     /**
      * @dev A getter function that returns all investment positions for a user.

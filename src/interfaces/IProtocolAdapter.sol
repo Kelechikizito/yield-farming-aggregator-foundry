@@ -9,10 +9,10 @@ interface IProtocolAdapter {
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    function deposit(uint256 amount, address token) external returns (uint256 shares);
-    function withdraw(uint256 shares, address token) external returns (uint256 amount);
+    function deposit(address token, uint256 amount) external returns (uint256 shares);
+    function withdraw(address token, uint256 shares) external returns (uint256 amount);
+    function getShareValue(address token, uint256 shares) external view returns (uint256);
     // function getCurrentAPY(address token) external view returns (uint256);
-    // function getPositionValue(uint256 shares, address token) external view returns (uint256);
     // function getAccruedRewards(address user, uint256 shares) external view returns (uint256);
     // function claimAndCompound(uint256 shares) external returns (uint256 newShares);
     // function getTVL(address token) external view returns (uint256);

@@ -61,9 +61,10 @@ contract CompoundV3Adapter is IProtocolAdapter {
     // 3. Call Comet's supply function
     // 4. Calculate shares received
     // 5. Return shares to YieldAggregator
-    function deposit(uint256 amount, address token) external returns (uint256 shares) {
+
+    function deposit(address token, uint256 amount) external returns (uint256 shares) {
         // Pull tokens from YieldAggregator(msg.sender) to this adapter
-        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
         // check the balance of shares before token supply
         uint256 balanceBeforeSupply = i_comet.balanceOf(address(this));
@@ -84,7 +85,7 @@ contract CompoundV3Adapter is IProtocolAdapter {
     }
 
     // In Compound V3, "shares" and "amount" are essentially the same thing
-    function withdraw(uint256 shares, address token) external returns (uint256 amount) {
+    function withdraw(address token, uint256 shares) external returns (uint256 amount) {
         // In Compound V3, when you withdraw "shares", you're actually withdrawing
         // that amount from your balance
 
@@ -95,6 +96,7 @@ contract CompoundV3Adapter is IProtocolAdapter {
 
         // STEP 3: Transfer tokens back to YieldAggregator
         IERC20(token).safeTransfer(msg.sender, amount);
+        // IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
         // STEP 4: Return amount
         return amount;
