@@ -89,26 +89,33 @@ contract CompoundV3Adapter is IProtocolAdapter {
         // In Compound V3, when you withdraw "shares", you're actually withdrawing
         // that amount from your balance
 
-        // STEP 1: Withdraw from Compound (this burns shares and gives tokens to adapter)
+        // STEP 1: Check adapter's token balance BEFORE withdrawal
+        uint256 balanceBeforeWithdrawal = IERC20(token).balanceOf(address(this));
+
+        // STEP 2: Withdraw from Compound (this burns shares and transfers tokens to this adapter)
         i_comet.withdraw(token, shares);
 
-        amount = IERC20(token).balanceOf(address(this));
+        // STEP 3: Check adapter's token balance AFTER withdrawal
+        uint256 balanceAfterWithdrawal = IERC20(token).balanceOf(address(this));
 
-        // STEP 3: Transfer tokens back to YieldAggregator
+        amount = balanceAfterWithdrawal - balanceBeforeWithdrawal; // @audit this is a bug // i fixed it by capturing the erc20 balance change between withdrawal and after withdrawal.
+
+        // STEP 4: Transfer tokens back to YieldAggregator
         IERC20(token).safeTransfer(msg.sender, amount);
-        // IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
-        // STEP 4: Return amount
+        // STEP 5: Return amount
         return amount;
     }
+
+    function getShareValue(address token, uint256 shares) external view returns (uint256) {
+        
+    }
+
 
     // returns the total balance of shares the adapter has in Comet
     function getBalance() external view returns (uint256) {
         return i_comet.balanceOf(address(this));
     }
-
-    // function getAssetInfo(uint8 i) external view returns (AssetInfo memory) {
-    // }
 
     function getCometAddress() external view returns (address) {
         return address(i_comet);

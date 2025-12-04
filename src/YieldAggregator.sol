@@ -373,6 +373,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
      * @param user The user's address
      * @param positionIndex The index of the position
      * @return currentValue The current value in underlying tokens
+     * @notice This function is necessary when users want to see their balance without withdrawing
      */
     function getPositionValue(address user, uint256 positionIndex) external view returns (uint256 currentValue) {
         UserPosition memory position = s_userPositions[user][positionIndex];
