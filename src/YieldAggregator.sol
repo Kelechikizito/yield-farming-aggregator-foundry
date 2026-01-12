@@ -258,7 +258,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /**
      * @notice Withdraw funds from a specific investment position
      * @dev This withdraw function meticulously follows the CEI pattern to double down on a potential reentrancy vulnerability, albeit, its external implementation is protected by the nonReentrant modifier.
-     * @param positionIndex The index of the user's investment position to withdraw from.
+     * @param positionIndex The indexx of the user's investment position to withdraw from.
      */
     function _withdraw(uint256 positionIndex) internal {
         // ✅ CHECKS
