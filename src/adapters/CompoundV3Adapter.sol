@@ -21,10 +21,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 // Q: Will I need to add access control for which contracts can call these functions?
 // note: this contract is abstract because it hasn't implemented ALL the interface functions
 contract CompoundV3Adapter is IProtocolAdapter {
-    //     supply()
-
-    // withdraw()
-
     // getAssetInfo()
 
     // balanceOf()
@@ -112,7 +108,7 @@ contract CompoundV3Adapter is IProtocolAdapter {
     // returns the total balance of shares the adapter has in Comet
     function getBalance() external view returns (uint256) {
         return i_comet.balanceOf(address(this));
-    }
+    } // question: why doesn't this comet implementation have token parameter like the aave one?
 
     function getCometAddress() external view returns (address) {
         return address(i_comet);
