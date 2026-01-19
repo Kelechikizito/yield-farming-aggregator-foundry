@@ -138,7 +138,11 @@ contract AaveV3Adapter is IProtocolAdapter {
         return amount;
     }
 
-    function getShareValue(address token, uint256 shares) external view returns (uint256) {}
+    function getShareValue(address token, uint256 shares) external pure returns (uint256) {
+        // In Aave V3, aTokens are pegged 1:1 with the underlying asset
+        // Therefore, the share value is equal to the number of shares
+        return shares;
+    }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
