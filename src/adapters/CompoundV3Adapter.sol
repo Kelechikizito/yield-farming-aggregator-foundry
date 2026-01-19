@@ -108,7 +108,7 @@ contract CompoundV3Adapter is IProtocolAdapter {
     // returns the total balance of shares the adapter has in Comet
     function getBalance() external view returns (uint256) {
         return i_comet.balanceOf(address(this));
-    } // question: why doesn't this comet implementation have token parameter like the aave one?
+    } // question why doesn't this comet implementation have token parameter like the aave one?
 
     function getCometAddress() external view returns (address) {
         return address(i_comet);
