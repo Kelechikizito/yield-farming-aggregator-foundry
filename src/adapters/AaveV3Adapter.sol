@@ -22,7 +22,6 @@ contract AaveV3Adapter is IProtocolAdapter {
                               ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    // error AaveV3Adapter__InvalidAavePoolProviderAddress();
     error AaveV3Adapter__InvalidAavePoolAddressesProvider();
     error AaveV3Adapter__IncorrectWithdrawAmount();
 

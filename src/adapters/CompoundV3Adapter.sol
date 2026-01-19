@@ -16,7 +16,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * @title CompoundV3Adapter
  * @author Kelechi Kizito Ugwu
  * @notice Adapter contract for interacting with the Compound V3 protocol.
- * @dev
+ * @dev Each Comet contract handles one specific base token (USDC, USDT, WETH, etc.)
  */
 // Q: Will I need to add access control for which contracts can call these functions?
 // note: this contract is abstract because it hasn't implemented ALL the interface functions
