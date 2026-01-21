@@ -31,6 +31,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IProtocolAdapter} from "src/interfaces/IProtocolAdapter.sol";
 import {IStrategyManager} from "src/interfaces/IStrategyManager.sol";
+import {IYieldAggregator} from "src/interfaces/IYieldAggregator,sol";
 
 // **APIs to Research:**
 // - DefiLlama API (aggregated DeFi data)
@@ -46,7 +47,7 @@ import {IStrategyManager} from "src/interfaces/IStrategyManager.sol";
  */
 // Vulnerability: Unchecked balance assumptions. Never rely solely on address(this).balance for critical logic.
 // Fix: Track deposits via a state variable (e.g., mapping(address => uint256) public deposits)/mapping(address => bool) public hasDeposited; instead of raw balance.
-contract YieldAggregator is ReentrancyGuard, Ownable {
+contract YieldAggregator is ReentrancyGuard, Ownable, IYieldAggregator {
     /*//////////////////////////////////////////////////////////////
                               ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -146,7 +147,13 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
                             CONSTRUCTOR
     /////////////////////////////////////////////////////////*/
 
-    constructor(address strategyManagerAddress) Ownable(msg.sender) noneZeroAddress(strategyManagerAddress) {
+    constructor(
+        address strategyManagerAddress /* ,address aavePoolAddressesProvider,
+                                       address comet,*/
+    )
+        Ownable(msg.sender)
+        noneZeroAddress(strategyManagerAddress)
+    {
         i_strategyManager = IStrategyManager(strategyManagerAddress); // Typecasting directly in the constructor means we just use i_strategyManager directly - no need to typecast again.
     }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-interface IYieldPeer {
+interface IYieldAggregator {
     struct Strategy {
         uint64 chainSelector;
         Protocol protocol;
