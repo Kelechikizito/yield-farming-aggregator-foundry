@@ -4,7 +4,7 @@ Looking at your yield farming aggregator flowchart, I'll break down the smart co
 
 Your yield farming aggregator will need several interconnected smart contracts:
 
-### 1. **Main Aggregator Contract**
+### 1. **Main Aggregator Contract** ✅
 This is your central hub that orchestrates everything:
 
 ```solidity
