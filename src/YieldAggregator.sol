@@ -31,7 +31,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IProtocolAdapter} from "src/interfaces/IProtocolAdapter.sol";
 import {IStrategyManager} from "src/interfaces/IStrategyManager.sol";
-import {IYieldAggregator} from "src/interfaces/IYieldAggregator,sol";
+import {IYieldAggregator} from "src/interfaces/IYieldAggregator.sol";
 
 // **APIs to Research:**
 // - DefiLlama API (aggregated DeFi data)
@@ -47,7 +47,7 @@ import {IYieldAggregator} from "src/interfaces/IYieldAggregator,sol";
  */
 // Vulnerability: Unchecked balance assumptions. Never rely solely on address(this).balance for critical logic.
 // Fix: Track deposits via a state variable (e.g., mapping(address => uint256) public deposits)/mapping(address => bool) public hasDeposited; instead of raw balance.
-contract YieldAggregator is ReentrancyGuard, Ownable, IYieldAggregator {
+contract YieldAggregator is ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                               ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -73,7 +73,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable, IYieldAggregator {
      */
     using SafeERC20 for IERC20;
 
-    /// @dev This struct holds the information about a user's investment position in a specific protocol.
+    /// @dev This sstruct holds the information about a user's investment position in a specific protocol.
     struct UserPosition {
         string protocolName; // "compound", "aave", etc.
         address token; // USDC, DAI, etc.
