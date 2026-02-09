@@ -30,7 +30,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IProtocolAdapter} from "src/interfaces/IProtocolAdapter.sol";
-import {IStrategyManager} from "src/interfaces/IStrategyManager.sol";
+// import {IStrategyManager} from "src/interfaces/IStrategyManager.sol";
 import {IYieldAggregator} from "src/interfaces/IYieldAggregator.sol";
 
 // **APIs to Research:**
@@ -47,21 +47,21 @@ import {IYieldAggregator} from "src/interfaces/IYieldAggregator.sol";
  */
 // Vulnerability: Unchecked balance assumptions. Never rely solely on address(this).balance for critical logic.
 // Fix: Track deposits via a state variable (e.g., mapping(address => uint256) public deposits)/mapping(address => bool) public hasDeposited; instead of raw balance.
-contract YieldAggregator is ReentrancyGuard, Ownable {
+contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                               ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error YieldAggregator__InsufficientBalance();
-    error YieldAggregator__ProtocolNotSupported();
-    error YieldAggregator__InvalidAmount();
-    error YieldAggregator__PositionNotFound();
-    error YieldAggregator__InvalidAdapterAddress();
-    error YieldAggregator__InvalidToken();
-    error YieldAggregator__InvalidSharesReceived();
-    error YieldAggregator__ETHDepositNotSupported();
-    error YieldAggregator__InsufficientETHBalance();
-    error YieldAggregator__FailedETHWithdrawal();
+    // error YieldAggregator__InsufficientBalance();
+    // error YieldAggregator__ProtocolNotSupported();
+    // error YieldAggregator__InvalidAmount();
+    // error YieldAggregator__PositionNotFound();
+    // error YieldAggregator__InvalidAdapterAddress();
+    // error YieldAggregator__InvalidToken();
+    // error YieldAggregator__InvalidSharesReceived();
+    // error YieldAggregator__ETHDepositNotSupported();
+    // error YieldAggregator__InsufficientETHBalance();
+    // error YieldAggregator__FailedETHWithdrawal();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
@@ -74,23 +74,23 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
 
     /// @dev This sstruct holds the information about a user's investment position in a specific protocol.
-    struct UserPosition {
-        string protocolName; // "compound", "aave", etc.
-        address token; // USDC, DAI, etc.
-        uint256 principalAmount; // Original investment
-        uint256 currentShares; // Protocol-specific shares/tokens
-        uint256 depositTimestamp; // Time When invested
-        bool autoCompoundEnabled; // User preference for auto-compounding
-        uint256 lastCompoundTime; // For auto-compound tracking(Last time rewards were reinvested)
-    }
+    // struct UserPosition {
+    //     string protocolName; // "compound", "aave", etc.
+    //     address token; // USDC, DAI, etc.
+    //     uint256 principalAmount; // Original investment
+    //     uint256 currentShares; // Protocol-specific shares/tokens
+    //     uint256 depositTimestamp; // Time When invested
+    //     bool autoCompoundEnabled; // User preference for auto-compounding
+    //     uint256 lastCompoundTime; // For auto-compound tracking(Last time rewards were reinvested)
+    // }
 
-    /// @dev This struct holds the auto-compounding settings for a user.
-    struct AutoCompoundSettings {
-        bool enabled; // Global auto-compound toggle
-        uint256 minRewardThreshold; // Minimum rewards to trigger compound
-        uint256 maxGasPrice; // Max gas price willing to pay
-        uint256 slippageTolerance; // Acceptable slippage (basis points)
-    }
+    // /// @dev This struct holds the auto-compounding settings for a user.
+    // struct AutoCompoundSettings {
+    //     bool enabled; // Global auto-compound toggle
+    //     uint256 minRewardThreshold; // Minimum rewards to trigger compound
+    //     uint256 maxGasPrice; // Max gas price willing to pay
+    //     uint256 slippageTolerance; // Acceptable slippage (basis points)
+    // }
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -104,23 +104,23 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /// @dev The mapping of user addresses to their auto-compounding settings
     mapping(address user => AutoCompoundSettings) private s_userSettings;
 
-    IStrategyManager private immutable i_strategyManager;
+    // IStrategyManager private immutable i_strategyManager;
 
     /*/////////////////////////////////////////////////////////
                             EVENTS
     /////////////////////////////////////////////////////////*/
 
-    // / @notice Emitted when a ETH is sent to the contract, i.e. When the receive function is triggered
-    // event Deposit(address indexed sender, uint256 amount);
-    event InvestmentMade(
-        address indexed sender, string targetProtocol, address indexed token, uint256 amount, uint256 indexed shares
-    );
-    event Withdrawal(address indexed sender, string indexed protocolName, uint256 indexed amount);
-    event ETHWithdrawal(address indexed to, uint256 indexed amount);
-    event AdapterAdded(string indexed protocolName, address indexed adapterAddress);
-    event AutoCompoundSettingsChanged(
-        address indexed sender, bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage
-    );
+    // // / @notice Emitted when a ETH is sent to the contract, i.e. When the receive function is triggered
+    // // event Deposit(address indexed sender, uint256 amount);
+    // event InvestmentMade(
+    //     address indexed sender, string targetProtocol, address indexed token, uint256 amount, uint256 indexed shares
+    // );
+    // event Withdrawal(address indexed sender, string indexed protocolName, uint256 indexed amount);
+    // event ETHWithdrawal(address indexed to, uint256 indexed amount);
+    // event AdapterAdded(string indexed protocolName, address indexed adapterAddress);
+    // event AutoCompoundSettingsChanged(
+    //     address indexed sender, bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage
+    // );
 
     /*/////////////////////////////////////////////////////////
                             MODIFIERS
@@ -148,13 +148,14 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
     /////////////////////////////////////////////////////////*/
 
     constructor(
-        address strategyManagerAddress /* ,address aavePoolAddressesProvider,
-                                       address comet,*/
+        // address strategyManagerAddress /* ,address aavePoolAddressesProvider,
+        //    address comet,*/
     )
         Ownable(msg.sender)
-        noneZeroAddress(strategyManagerAddress)
+        // noneZeroAddress(strategyManagerAddress)
+
     {
-        i_strategyManager = IStrategyManager(strategyManagerAddress); // Typecasting directly in the constructor means we just use i_strategyManager directly - no need to typecast again.
+        // i_strategyManager = IStrategyManager(strategyManagerAddress); // Typecasting directly in the constructor means we just use i_strategyManager directly - no need to typecast again.
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -323,7 +324,7 @@ contract YieldAggregator is ReentrancyGuard, Ownable {
         string memory targetProtocol = preferredProtocol;
         // this conditional means that if a user doesn't provide a preferredProtocol, i.e, if the preferredProtocol is empty, the strategymanager should find the best protocol for the particular token
         if (bytes(preferredProtocol).length == 0) {
-            targetProtocol = i_strategyManager.findBestYield(token, amount);
+            revert YieldAggregator__ProtocolNotSupported();
         }
 
         // STEP 3: Check if the protocol adapter exists in your mapping
