@@ -52,16 +52,16 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
                               ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    // error YieldAggregator__InsufficientBalance();
-    // error YieldAggregator__ProtocolNotSupported();
-    // error YieldAggregator__InvalidAmount();
-    // error YieldAggregator__PositionNotFound();
-    // error YieldAggregator__InvalidAdapterAddress();
-    // error YieldAggregator__InvalidToken();
-    // error YieldAggregator__InvalidSharesReceived();
-    // error YieldAggregator__ETHDepositNotSupported();
-    // error YieldAggregator__InsufficientETHBalance();
-    // error YieldAggregator__FailedETHWithdrawal();
+    error YieldAggregator__InsufficientBalance();
+    error YieldAggregator__ProtocolNotSupported();
+    error YieldAggregator__InvalidAmount();
+    error YieldAggregator__PositionNotFound();
+    error YieldAggregator__InvalidAdapterAddress();
+    error YieldAggregator__InvalidToken();
+    error YieldAggregator__InvalidSharesReceived();
+    error YieldAggregator__ETHDepositNotSupported();
+    error YieldAggregator__InsufficientETHBalance();
+    error YieldAggregator__FailedETHWithdrawal();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
