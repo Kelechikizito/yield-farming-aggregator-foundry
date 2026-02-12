@@ -72,175 +72,189 @@ contract YieldAggregatorTest is Test {
         _;
     }
 
-    // function testOwnerCanInvestIntoASpecificProtocolSuccesfully() external {
-    //     // ARRANGE
-    //     uint256 INVESTED_AMOUNT = 1e6;
-    //     //@notice This is the USDC address on Ethereum Sepolia network
-    //     address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
-    //     //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
-    //     address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
-    //     //@notice create a fork of Ethereum Sepolia network
-    //     ethSepoliaFork = vm.createSelectFork("sepolia_eth");
+    function testOwnerCanInvestIntoASpecificProtocolSuccesfully__Compound() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1e6;
+        //@notice This is the USDC address on Ethereum Sepolia network
+        address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+        //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
+        address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethSepoliaFork = vm.createSelectFork("sepolia_eth");
 
-    //     // ACT
-    //     //@notice This funds the owner with some ETH to pay for gas fees
-    //     vm.deal(OWNER, OWNER_ETH_BALANCE);
-    //     //@notice Foundry cheatcode to send tokens to an address
-    //     deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
-    //     uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING = IERC20(ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
-    //     //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
-    //     strategyManager = new StrategyManager();
-    //     vm.prank(OWNER);
-    //     yieldAggregator = new YieldAggregator(address(strategyManager));
-    //     compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
-    //     vm.prank(OWNER);
-    //     yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
+        // ACT
+        //@notice This funds the owner with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING = IERC20(ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
 
-    //     vm.prank(OWNER);
-    //     IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
-    //     vm.prank(OWNER);
-    //     positionIndex = yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT, "compoundV3_USDC");
-    //     uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        vm.prank(OWNER);
+        IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+        vm.prank(OWNER);
+        positionIndex = yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT, "compoundV3_USDC");
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
 
-    //     // ASSERT
-    //     assertEq(OWNER_USDC_BALANCE_BEFORE_INVESTING - OWNER_USDC_BALANCE_AFTER_INVESTING, INVESTED_AMOUNT);
-    //     assertEq(positionIndex, 0);
-    // }
+        // ASSERT
+        assertEq(OWNER_USDC_BALANCE_BEFORE_INVESTING - OWNER_USDC_BALANCE_AFTER_INVESTING, INVESTED_AMOUNT);
+        assertEq(positionIndex, 0);
+    }
 
-    // function testInvestRevertsIfCallerHasInsuffucientBalance() external {
-    //     // ARRANGE
-    //     uint256 INVESTED_AMOUNT = 1e6;
-    //     //@notice This is the USDC address on Ethereum Sepolia network
-    //     address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
-    //     //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
-    //     address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
-    //     //@notice create a fork of Ethereum Sepolia network
-    //     ethSepoliaFork = vm.createSelectFork("sepolia_eth");
+    function testInvestRevertsIfCallerHasInsuffucientBalance() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1e6;
+        //@notice This is the USDC address on Ethereum Sepolia network
+        address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+        //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
+        address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethSepoliaFork = vm.createSelectFork("sepolia_eth");
 
-    //     // ACT
-    //     //@notice This funds the owner with some ETH to pay for gas fees
-    //     vm.deal(OWNER, OWNER_ETH_BALANCE);
-    //     //@notice Foundry cheatcode to send tokens to an address
-    //     deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
-    //     //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
-    //     strategyManager = new StrategyManager();
-    //     vm.prank(OWNER);
-    //     yieldAggregator = new YieldAggregator(address(strategyManager));
-    //     compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
-    //     vm.prank(OWNER);
-    //     yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
+        // ACT
+        //@notice This funds the owner with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
 
-    //     vm.prank(OWNER);
-    //     IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
-    //     vm.prank(OWNER);
-    //     vm.expectRevert(YieldAggregator.YieldAggregator__InsufficientBalance.selector);
-    //     yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT + OWNER_USDC_BALANCE, "compoundV3_USDC");
-    // }
+        vm.prank(OWNER);
+        IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+        vm.prank(OWNER);
+        vm.expectRevert(YieldAggregator.YieldAggregator__InsufficientBalance.selector);
+        yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT + OWNER_USDC_BALANCE, "compoundV3_USDC");
+    }
 
-    // function testInvestRevertsIfInvalidTokenAddress() external {
-    //     // ARRANGE
-    //     uint256 INVESTED_AMOUNT = 1e6;
-    //     //@notice This is the USDC address on Ethereum Sepolia network
-    //     address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
-    //     //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
-    //     address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
-    //     //@notice create a fork of Ethereum Sepolia network
-    //     ethSepoliaFork = vm.createSelectFork("sepolia_eth");
+    function testInvestRevertsIfInvalidTokenAddress() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1e6;
+        //@notice This is the USDC address on Ethereum Sepolia network
+        address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+        //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
+        address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethSepoliaFork = vm.createSelectFork("sepolia_eth");
 
-    //     // ACT
-    //     //@notice This funds the owner with some ETH to pay for gas fees
-    //     vm.deal(OWNER, OWNER_ETH_BALANCE);
-    //     //@notice Foundry cheatcode to send tokens to an address
-    //     deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
-    //     //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
-    //     strategyManager = new StrategyManager();
-    //     vm.prank(OWNER);
-    //     yieldAggregator = new YieldAggregator(address(strategyManager));
-    //     compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
-    //     vm.prank(OWNER);
-    //     yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
+        // ACT
+        //@notice This funds the owner with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
 
-    //     vm.prank(OWNER);
-    //     IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
-    //     vm.prank(OWNER);
-    //     vm.expectRevert(YieldAggregator.YieldAggregator__InvalidToken.selector);
-    //     yieldAggregator.invest(address(0), INVESTED_AMOUNT, "compoundV3_USDC");
-    // }
+        vm.prank(OWNER);
+        IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+        vm.prank(OWNER);
+        vm.expectRevert(YieldAggregator.YieldAggregator__InvalidToken.selector);
+        yieldAggregator.invest(address(0), INVESTED_AMOUNT, "compoundV3_USDC");
+    }
 
-    // function testInvestRevertsIfZeroAmount() external {
-    //     // ARRANGE
-    //     uint256 ZERO_AMOUNT = 0;
-    //     //@notice This is the USDC address on Ethereum Sepolia network
-    //     address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
-    //     //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
-    //     address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
-    //     //@notice create a fork of Ethereum Sepolia network
-    //     ethSepoliaFork = vm.createSelectFork("sepolia_eth");
+    function testInvestRevertsIfZeroAmount() external {
+        // ARRANGE
+        uint256 ZERO_AMOUNT = 0;
+        //@notice This is the USDC address on Ethereum Sepolia network
+        address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+        //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
+        address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethSepoliaFork = vm.createSelectFork("sepolia_eth");
 
-    //     // ACT
-    //     //@notice This funds the owner with some ETH to pay for gas fees
-    //     vm.deal(OWNER, OWNER_ETH_BALANCE);
-    //     //@notice Foundry cheatcode to send USDC tokens to an address
-    //     deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
-    //     //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
-    //     strategyManager = new StrategyManager();
-    //     vm.prank(OWNER);
-    //     yieldAggregator = new YieldAggregator(address(strategyManager));
-    //     compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
-    //     vm.prank(OWNER);
-    //     yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
+        // ACT
+        //@notice This funds the owner with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        //@notice Foundry cheatcode to send USDC tokens to an address
+        deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
 
-    //     vm.prank(OWNER);
-    //     IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
-    //     vm.prank(OWNER);
-    //     vm.expectRevert(YieldAggregator.YieldAggregator__InvalidAmount.selector);
-    //     yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, ZERO_AMOUNT, "compoundV3_USDC");
-    // }
+        vm.prank(OWNER);
+        IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+        vm.prank(OWNER);
+        vm.expectRevert(YieldAggregator.YieldAggregator__InvalidAmount.selector);
+        yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, ZERO_AMOUNT, "compoundV3_USDC");
+    }
 
-    // modifier investedIntoASpecificProtocol() {
-    //     // ARRANGE
-    //     uint256 INVESTED_AMOUNT = 1e6;
-    //     //@notice This is the USDC address on Ethereum Sepolia network
-    //     address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
-    //     //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
-    //     address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
-    //     //@notice create a fork of Ethereum Sepolia network
-    //     ethSepoliaFork = vm.createSelectFork("sepolia_eth");
+    modifier investedIntoASpecificProtocol() {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1e6;
+        //@notice This is the USDC address on Ethereum Sepolia network
+        address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+        //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
+        address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethSepoliaFork = vm.createSelectFork("sepolia_eth");
 
-    //     // ACT
-    //     //@notice This funds the owner with some ETH to pay for gas fees
-    //     vm.deal(OWNER, OWNER_ETH_BALANCE);
-    //     //@notice Foundry cheatcode to send tokens to an address
-    //     deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
-    //     //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
-    //     strategyManager = new StrategyManager();
-    //     vm.prank(OWNER);
-    //     yieldAggregator = new YieldAggregator(address(strategyManager));
-    //     compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
-    //     vm.prank(OWNER);
-    //     yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
+        // ACT
+        //@notice This funds the owner with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_SEPOLIA_USDC_ADDRESS);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
 
-    //     vm.prank(OWNER);
-    //     IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
-    //     vm.prank(OWNER);
-    //     positionIndex = yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT, "compoundV3_USDC");
-    //     _;
-    // }
+        vm.prank(OWNER);
+        IERC20(ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+        vm.prank(OWNER);
+        positionIndex = yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT, "compoundV3_USDC");
+        _;
+    }
 
-    // function testGetUserPositions() external investedIntoASpecificProtocol {
-    //     // ACT
-    //     yieldAggregator.getUserPositions(OWNER);
-    //     yieldAggregator.getUserPositionCount(OWNER);
-    //     yieldAggregator.getUserPositionByIndex(OWNER, positionIndex);
+    function testGetUserPositions() external investedIntoASpecificProtocol {
+        // ACT
+        yieldAggregator.getUserPositions(OWNER);
+        yieldAggregator.getUserPositionCount(OWNER);
+        yieldAggregator.getUserPositionByIndex(OWNER, positionIndex);
 
-    //     // ASSERT
-    //     assertEq(positionIndex, 0);
-    // }
+        // ASSERT
+        assertEq(positionIndex, 0);
+    }
 
-    // function testOwnerCanWithdrawFromASpecificProtocolSuccessfully() external investedIntoASpecificProtocol {
-    //     vm.prank(OWNER);
-    //     yieldAggregator.withdraw(positionIndex);
-    // }
+    /// @notice Test that owner can withdraw successfully and receives funds
+    function testOwnerCanWithdrawFromASpecificProtocolSuccessfully__Compound() external investedIntoASpecificProtocol {
+        // ARRANGE
+        address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+
+        uint256 ownerBalanceBefore = IERC20(ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 positionCountBefore = yieldAggregator.getUserPositionCount(OWNER);
+
+        // ACT
+        vm.prank(OWNER);
+        yieldAggregator.withdraw(positionIndex);
+
+        // ASSERT
+        uint256 ownerBalanceAfter = IERC20(ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 positionCountAfter = yieldAggregator.getUserPositionCount(OWNER);
+
+        // Verify balance increased
+        assertGt(ownerBalanceAfter, ownerBalanceBefore, "Owner balance should increase after withdrawal");
+
+        // Verify position was removed
+        assertEq(positionCountAfter, positionCountBefore - 1, "Position count should decrease by 1");
+        assertEq(positionCountAfter, 0, "Should have 0 positions after withdrawal");
+    }
 
     // function testInterestAccruesOnInvestmentOvertimeOnMainnet() external {
     //     vm.warp(block.timestamp + 365 days); // simulate time passage to accrue some interest, this interest accrual doesn't work on testnet only on mainnet
