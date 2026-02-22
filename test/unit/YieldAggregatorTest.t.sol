@@ -20,6 +20,7 @@ contract YieldAggregatorTest is Test {
 
     YieldAggregator yieldAggregator;
     CompoundV3Adapter compoundV3Adapter;
+    AaveV3Adapter aaveV3Adapter;
     uint256 positionIndex;
     uint256 ethSepoliaFork;
 
@@ -100,6 +101,41 @@ contract YieldAggregatorTest is Test {
         vm.prank(OWNER);
         positionIndex = yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT, "compoundV3_USDC");
         uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+
+        // ASSERT
+        assertEq(OWNER_USDC_BALANCE_BEFORE_INVESTING - OWNER_USDC_BALANCE_AFTER_INVESTING, INVESTED_AMOUNT);
+        assertEq(positionIndex, 0);
+    }
+
+    function testOwnerCanInvestIntoASpecificProtocolSuccesfully__Aave() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1000e6;
+        //@notice This is the USDC address on Ethereum Sepolia network for aave
+        address AAVE_ETH_SEPOLIA_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
+        address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT
+        //@notice This funds the owner with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(AAVE_ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING = IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        vm.prank(OWNER);
+        aaveV3Adapter = new AaveV3Adapter(AAVE_POOL_ADDRESSES_PROVIDER);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("aaveV3_USDC", address(aaveV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+        vm.prank(OWNER);
+        positionIndex = yieldAggregator.invest(AAVE_ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT, "aaveV3_USDC");
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
 
         // ASSERT
         assertEq(OWNER_USDC_BALANCE_BEFORE_INVESTING - OWNER_USDC_BALANCE_AFTER_INVESTING, INVESTED_AMOUNT);
@@ -193,7 +229,7 @@ contract YieldAggregatorTest is Test {
         yieldAggregator.invest(ETH_SEPOLIA_USDC_ADDRESS, ZERO_AMOUNT, "compoundV3_USDC");
     }
 
-    modifier investedIntoASpecificProtocol() {
+    modifier investedIntoASpecificProtocol__Compound() {
         // ARRANGE
         uint256 INVESTED_AMOUNT = 1e6;
         //@notice This is the USDC address on Ethereum Sepolia network
@@ -222,7 +258,7 @@ contract YieldAggregatorTest is Test {
         _;
     }
 
-    function testGetUserPositions() external investedIntoASpecificProtocol {
+    function testGetUserPositions() external investedIntoASpecificProtocol__Compound {
         // ACT
         yieldAggregator.getUserPositions(OWNER);
         yieldAggregator.getUserPositionCount(OWNER);
@@ -233,7 +269,10 @@ contract YieldAggregatorTest is Test {
     }
 
     /// @notice Test that owner can withdraw successfully and receives funds
-    function testOwnerCanWithdrawFromASpecificProtocolSuccessfully__Compound() external investedIntoASpecificProtocol {
+    function testOwnerCanWithdrawFromASpecificProtocolSuccessfully__Compound()
+        external
+        investedIntoASpecificProtocol__Compound
+    {
         // ARRANGE
         address ETH_SEPOLIA_USDC_ADDRESS = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
 
@@ -250,6 +289,7 @@ contract YieldAggregatorTest is Test {
 
         // Verify balance increased
         assertGt(ownerBalanceAfter, ownerBalanceBefore, "Owner balance should increase after withdrawal");
+        // assertEq(ownerBalanceAfter, ownerBalanceBefore + 1e6); // This assertion line will fail because it accrued interest?
 
         // Verify position was removed
         assertEq(positionCountAfter, positionCountBefore - 1, "Position count should decrease by 1");
