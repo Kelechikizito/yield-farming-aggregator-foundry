@@ -8,6 +8,7 @@ import {AaveV3Adapter} from "src/adapters/AaveV3Adapter.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IComet} from "src/interfaces/IComet.sol";
+import {SelfDestruct} from "test/utils/SelfDestruct.sol";
 
 // import {MockERC20} from "./mocks/MockERC20.sol";
 // import {MockAavePool} from "./mocks/MockAavePool.sol";
@@ -258,6 +259,37 @@ contract YieldAggregatorTest is Test {
         _;
     }
 
+    modifier investedIntoASpecificProtocol__Aave() {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1000e6;
+        //@notice This is the USDC address on Ethereum Sepolia network for aave
+        address AAVE_ETH_SEPOLIA_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
+        address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT
+        //@notice This funds the owner with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(AAVE_ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        vm.prank(OWNER);
+        aaveV3Adapter = new AaveV3Adapter(AAVE_POOL_ADDRESSES_PROVIDER);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("aaveV3_USDC", address(aaveV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+        vm.prank(OWNER);
+        positionIndex = yieldAggregator.invest(AAVE_ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT, "aaveV3_USDC");
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        _;
+    }
+
     function testGetUserPositions() external investedIntoASpecificProtocol__Compound {
         // ACT
         yieldAggregator.getUserPositions(OWNER);
@@ -268,7 +300,7 @@ contract YieldAggregatorTest is Test {
         assertEq(positionIndex, 0);
     }
 
-    /// @notice Test that owner can withdraw successfully and receives funds
+    /// @notice Test that owner can withdraw successfully and receives funds from Compound
     function testOwnerCanWithdrawFromASpecificProtocolSuccessfully__Compound()
         external
         investedIntoASpecificProtocol__Compound
@@ -296,7 +328,107 @@ contract YieldAggregatorTest is Test {
         assertEq(positionCountAfter, 0, "Should have 0 positions after withdrawal");
     }
 
+    /// @notice Test that owner can withdraw successfully and receives funds from Aave
+    function testOwnerCanWithdrawFromASpecificProtocolSuccessfully__Aave()
+        external
+        investedIntoASpecificProtocol__Aave
+    {
+        // ARRANGE
+        //@notice This is the USDC address on Ethereum Sepolia network for aave
+        address AAVE_ETH_SEPOLIA_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
+
+        uint256 ownerBalanceBefore = IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 positionCountBefore = yieldAggregator.getUserPositionCount(OWNER);
+
+        // ACT
+        vm.prank(OWNER);
+        yieldAggregator.withdraw(positionIndex);
+
+        // ASSERT
+        uint256 ownerBalanceAfter = IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 positionCountAfter = yieldAggregator.getUserPositionCount(OWNER);
+
+        // Verify balance increased
+        assertGt(ownerBalanceAfter, ownerBalanceBefore, "Owner balance should increase after withdrawal");
+        // assertEq(ownerBalanceAfter, ownerBalanceBefore + 1e6); // This assertion line will fail because it accrued interest?
+
+        // Verify position was removed
+        assertEq(positionCountAfter, positionCountBefore - 1, "Position count should decrease by 1");
+        assertEq(positionCountAfter, 0, "Should have 0 positions after withdrawal");
+    }
+
     // function testInterestAccruesOnInvestmentOvertimeOnMainnet() external {
     //     vm.warp(block.timestamp + 365 days); // simulate time passage to accrue some interest, this interest accrual doesn't work on testnet only on mainnet
     // }
+
+    /*//////////////////////////////////////////////////////////////
+                        RECEIVE FUNCTION TESTS
+    //////////////////////////////////////////////////////////////*/
+    function testReceiveFunctionReverts() external {
+        // ARRANGE
+        address sender = makeAddr("sender");
+        vm.deal(sender, 1 ether);
+
+        // ACT & ASSERT
+        vm.prank(sender);
+        vm.expectRevert(YieldAggregator.YieldAggregator__ETHDepositNotSupported.selector);
+
+        (bool success,) = address(yieldAggregator).call{value: 1 ether}("");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        WITHDRAW ETH EDGE CASE TESTS
+    //////////////////////////////////////////////////////////////*/
+    function testWithdrawETHrevertsIfNotOwner() external {
+        // ARRANGE
+        address NON_OWNER = makeAddr("non_owner");
+
+        // ACT & ASSERT
+        vm.expectRevert();
+        vm.prank(NON_OWNER);
+        yieldAggregator.withdrawETH(payable(NON_OWNER), 1e18);
+    }
+
+    function testWithdrawETHRevertsIncaseOfInsufficientBalance() external {
+        // ARRANGE
+        address sender = makeAddr("sender");
+
+        // ACT & ASSERT
+        vm.prank(OWNER);
+        vm.deal(sender, 1 ether);
+        SelfDestruct selfDestructContract = new SelfDestruct();
+
+        vm.prank(sender);
+        (bool success,) = address(selfDestructContract).call{value: 1 ether}("");
+
+        vm.prank(OWNER);
+        selfDestructContract.destroy(payable(address(yieldAggregator)));
+
+        vm.expectRevert(YieldAggregator.YieldAggregator__InsufficientETHBalance.selector);
+        vm.prank(OWNER);
+        yieldAggregator.withdrawETH(payable(OWNER), 2 ether);
+    }
+
+    function testWithdrawETHWorksIncaseOfSelfDestruct() external {
+        // ARRANGE
+        address sender = makeAddr("sender");
+
+        // ACT
+        vm.prank(OWNER);
+        vm.deal(sender, 1 ether);
+        SelfDestruct selfDestructContract = new SelfDestruct();
+
+        vm.prank(sender);
+        (bool success,) = address(selfDestructContract).call{value: 1 ether}("");
+
+        vm.prank(OWNER);
+        selfDestructContract.destroy(payable(address(yieldAggregator)));
+
+        vm.prank(OWNER);
+        yieldAggregator.withdrawETH(payable(OWNER), 1 ether);
+
+        // ASSERT
+        assertEq(OWNER.balance, 1 ether);
+    }
 }

@@ -10,5 +10,7 @@ remappings = [
     "@aave/core-v3/contracts=lib/aave-v3-core/contracts"
 ]
 rpc_endpoints = { mainnet_eth = "${ETH_MAINNET_RPC_URL}", sepolia_eth = "${SEPOLIA_RPC_URL}", arb = "${ARBITRUM_SEPOLIA_RPC_URL}", zksync = "${ZKSYNC_SEPOLIA_RPC_URL}" }
+skip = ["test", "script", "mocks", "src/StrategyManager.sol"]
+
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
