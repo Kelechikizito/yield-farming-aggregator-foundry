@@ -290,16 +290,6 @@ contract YieldAggregatorTest is Test {
         _;
     }
 
-    function testGetUserPositions() external investedIntoASpecificProtocol__Compound {
-        // ACT
-        yieldAggregator.getUserPositions(OWNER);
-        yieldAggregator.getUserPositionCount(OWNER);
-        yieldAggregator.getUserPositionByIndex(OWNER, positionIndex);
-
-        // ASSERT
-        assertEq(positionIndex, 0);
-    }
-
     /// @notice Test that owner can withdraw successfully and receives funds from Compound
     function testOwnerCanWithdrawFromASpecificProtocolSuccessfully__Compound()
         external
@@ -361,6 +351,26 @@ contract YieldAggregatorTest is Test {
     // function testInterestAccruesOnInvestmentOvertimeOnMainnet() external {
     //     vm.warp(block.timestamp + 365 days); // simulate time passage to accrue some interest, this interest accrual doesn't work on testnet only on mainnet
     // }
+
+    /*//////////////////////////////////////////////////////////////
+                        GETTER FUNCTIONS TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testGetUserPositionsAfterInvestment() external investedIntoASpecificProtocol__Compound {
+        // ACT
+        yieldAggregator.getUserPositions(OWNER);
+        yieldAggregator.getUserPositionCount(OWNER);
+        yieldAggregator.getUserPositionByIndex(OWNER, positionIndex);
+        uint256 userCurrentValue = yieldAggregator.getPositionValue(OWNER, positionIndex);
+        uint256 userEarnedYield = yieldAggregator.getYieldEarned(OWNER, positionIndex);
+
+        // ASSERT
+        vm.expectRevert();
+        yieldAggregator.getUserPositionByIndex(OWNER, positionIndex + 1);
+        assertEq(positionIndex, 0);
+        console2.log("User current value for position index ", positionIndex, "is", userCurrentValue);
+        console2.log("User earned yield for position index ", positionIndex, "is", userEarnedYield);
+    }
 
     /*//////////////////////////////////////////////////////////////
                         RECEIVE FUNCTION TESTS
