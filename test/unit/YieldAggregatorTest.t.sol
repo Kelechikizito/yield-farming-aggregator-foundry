@@ -372,6 +372,42 @@ contract YieldAggregatorTest is Test {
         console2.log("User earned yield for position index ", positionIndex, "is", userEarnedYield);
     }
 
+    function testGetUserValueAndEarnedYield() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1000e6;
+        //@notice This is the USDC address on Ethereum Sepolia network for aave
+        address AAVE_ETH_SEPOLIA_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
+        address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT
+        //@notice This funds the owner with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(AAVE_ETH_SEPOLIA_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        vm.prank(OWNER);
+        aaveV3Adapter = new AaveV3Adapter(AAVE_POOL_ADDRESSES_PROVIDER);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("aaveV3_USDC", address(aaveV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+        vm.prank(OWNER);
+        positionIndex = yieldAggregator.invest(AAVE_ETH_SEPOLIA_USDC_ADDRESS, INVESTED_AMOUNT, "aaveV3_USDC");
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        vm.warp(block.timestamp + 365 days);
+        vm.roll(block.number + (365 days / 12));
+        uint256 userEarnedYield = yieldAggregator.getYieldEarned(OWNER, positionIndex);
+
+        // ASSERT
+        console2.log("User earned yield for position index ", positionIndex, "is", userEarnedYield);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         RECEIVE FUNCTION TESTS
     //////////////////////////////////////////////////////////////*/
