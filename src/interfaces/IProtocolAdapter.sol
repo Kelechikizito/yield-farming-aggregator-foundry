@@ -11,7 +11,7 @@ interface IProtocolAdapter {
     //////////////////////////////////////////////////////////////*/
     function deposit(address token, uint256 amount) external returns (uint256 shares);
     function withdraw(address token, uint256 shares) external returns (uint256 amount);
-    function getShareValue(address token, uint256 shares) external view returns (uint256);
+    function getShareValue(address token, uint256 shares) external returns (uint256);
     // function getCurrentAPY(address token) external view returns (uint256);
     // function getAccruedRewards(address user, uint256 shares) external view returns (uint256);
     // function claimAndCompound(uint256 shares) external returns (uint256 newShares);

@@ -8,6 +8,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import {IPoolAddressesProvider} from "@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol";
+import {WadRayMath} from "@aave/core-v3/contracts/protocol/libraries/math/WadRayMath.sol";
+import {IAToken} from "@aave/core-v3/contracts/interfaces/IAToken.sol";
 
 /**
  * @title AaveV3Adapter
@@ -30,6 +32,7 @@ contract AaveV3Adapter is IProtocolAdapter {
     //////////////////////////////////////////////////////////////*/
 
     using SafeERC20 for IERC20;
+    using WadRayMath for uint256;
 
     /// @dev The interface of the Aave V3 poolAddressProvider contract
     IPoolAddressesProvider private immutable i_aavePoolAddressesProvider;
@@ -77,7 +80,7 @@ contract AaveV3Adapter is IProtocolAdapter {
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
         // STEP 4: Check aToken balance BEFORE supply
-        uint256 balanceBeforeSupply = IERC20(aToken).balanceOf(address(this));
+        uint256 balanceBeforeSupply = IAToken(aToken).scaledBalanceOf(address(this));
 
         // STEP 5: Approve Pool to spend the tokens
         IERC20(token).forceApprove(pool, amount);
@@ -86,7 +89,7 @@ contract AaveV3Adapter is IProtocolAdapter {
         IPool(pool).supply(token, amount, address(this), 0);
 
         // STEP 7: Check aToken balance AFTER supply
-        uint256 balanceAfterSupply = IERC20(aToken).balanceOf(address(this));
+        uint256 balanceAfterSupply = IAToken(aToken).scaledBalanceOf(address(this));
 
         // STEP 8: Calculate shares received (aTokens minted)
         shares = balanceAfterSupply - balanceBeforeSupply;
@@ -137,10 +140,14 @@ contract AaveV3Adapter is IProtocolAdapter {
         return amount;
     }
 
-    function getShareValue(address token, uint256 shares) external pure returns (uint256) {
+    function getShareValue(address token, uint256 shares) external returns (uint256) {
         // In Aave V3, aTokens are pegged 1:1 with the underlying asset
         // Therefore, the share value is equal to the number of shares
-        return shares;
+        address pool = _getAavePoolAddress();
+
+        uint256 liquidityIndex = IPool(pool).getReserveNormalizedIncome(token);
+
+        return shares.rayMul(liquidityIndex);
     }
 
     /*//////////////////////////////////////////////////////////////

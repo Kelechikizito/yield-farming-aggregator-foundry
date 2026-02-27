@@ -159,7 +159,7 @@ interface IYieldAggregator {
      * @param positionIndex The index of the position
      * @return currentValue The current value in underlying tokens
      */
-    function getPositionValue(address user, uint256 positionIndex) external view returns (uint256 currentValue);
+    function getPositionValue(address user, uint256 positionIndex) external returns (uint256 currentValue);
 
     /**
      * @notice Get the yield earned on a specific position
@@ -167,7 +167,7 @@ interface IYieldAggregator {
      * @param positionIndex The index of the position
      * @return yieldEarned The amount of yield earned (currentValue - principal)
      */
-    function getYieldEarned(address user, uint256 positionIndex) external view returns (uint256 yieldEarned);
+    function getYieldEarned(address user, uint256 positionIndex) external returns (uint256 yieldEarned);
 
     /**
      * @notice Get all investment positions for a user

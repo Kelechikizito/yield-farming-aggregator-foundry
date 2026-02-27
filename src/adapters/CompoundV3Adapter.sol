@@ -103,7 +103,7 @@ contract CompoundV3Adapter is IProtocolAdapter {
         return amount;
     }
 
-    function getShareValue(address token, uint256 shares) external view returns (uint256) {}
+    function getShareValue(address token, uint256 shares) external returns (uint256) {}
 
     // returns the total balance of shares the adapter has in Comet
     function getBalance() external view returns (uint256) {

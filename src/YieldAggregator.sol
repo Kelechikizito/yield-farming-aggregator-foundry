@@ -383,7 +383,7 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
      * @return currentValue The current value in underlying tokens
      * @notice This function is necessary when users want to see their balance without withdrawing
      */
-    function getPositionValue(address user, uint256 positionIndex) external view returns (uint256 currentValue) {
+    function getPositionValue(address user, uint256 positionIndex) external returns (uint256 currentValue) {
         UserPosition memory position = s_userPositions[user][positionIndex];
 
         address adapter = s_protocolAdapters[position.protocolName];
@@ -401,7 +401,7 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
      * @param positionIndex The index of the position
      * @return yieldEarned The amount of yield earned
      */
-    function getYieldEarned(address user, uint256 positionIndex) external view returns (uint256 yieldEarned) {
+    function getYieldEarned(address user, uint256 positionIndex) external returns (uint256 yieldEarned) {
         UserPosition memory position = s_userPositions[user][positionIndex];
         uint256 currentValue = this.getPositionValue(user, positionIndex);
 
