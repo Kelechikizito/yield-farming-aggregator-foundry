@@ -26,6 +26,7 @@ contract AaveV3Adapter is IProtocolAdapter {
 
     error AaveV3Adapter__InvalidAavePoolAddressesProvider();
     error AaveV3Adapter__IncorrectWithdrawAmount();
+    error AaveV3Adapter__NothingToWithdraw();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
@@ -110,6 +111,11 @@ contract AaveV3Adapter is IProtocolAdapter {
         // STEP 1: Get the current Pool address
         address pool = _getAavePoolAddress();
 
+        // Convert THIS user's scaled shares → their underlying token amount
+        // This is the only amount we have the right to withdraw
+        uint256 liquidityIndex = IPool(pool).getReserveNormalizedIncome(token);
+        uint256 underlyingAmount = WadRayMath.rayMul(shares, liquidityIndex);
+
         // STEP 2: Check adapter's underlying token balance BEFORE withdrawal
         uint256 balanceBeforeWithdrawal = IERC20(token).balanceOf(address(this));
 
@@ -118,19 +124,24 @@ contract AaveV3Adapter is IProtocolAdapter {
         // - Burn the equivalent aTokens (roughly amountToWithdraw worth)
         // - Transfer amountToWithdraw underlying tokens to this adapter
         // - Return the actual amount withdrawn
-        uint256 actualWithdrawn = IPool(pool).withdraw(token, shares, address(this));
+        uint256 actualWithdrawn = IPool(pool).withdraw(token, underlyingAmount, address(this));
 
         // STEP 4: Safety check - ensure we got what we asked for
         // This protects against partial withdrawals or unexpected protocol behavior
-        if (actualWithdrawn != shares) {
-            revert AaveV3Adapter__IncorrectWithdrawAmount();
-        }
+        // if (actualWithdrawn != shares) {
+        //     revert AaveV3Adapter__IncorrectWithdrawAmount();
+        // }
 
         // STEP 5: Check adapter's underlying token balance AFTER withdrawal
         uint256 balanceAfterWithdrawal = IERC20(token).balanceOf(address(this));
 
         // Calculate actual amount received (should equal actualWithdrawn)
         amount = balanceAfterWithdrawal - balanceBeforeWithdrawal;
+
+        if (amount != actualWithdrawn) {
+            revert AaveV3Adapter__IncorrectWithdrawAmount();
+        }
+        if (amount == 0) revert AaveV3Adapter__NothingToWithdraw();
 
         // STEP 6: Transfer underlying tokens back to YieldAggregator
         IERC20(token).safeTransfer(msg.sender, amount);

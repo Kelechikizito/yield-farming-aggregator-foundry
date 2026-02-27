@@ -80,6 +80,9 @@ contract CompoundV3Adapter is IProtocolAdapter {
         // Calculate the shares we received
         shares = balanceAfterSupply - balanceBeforeSupply;
 
+        // This step tracks total shares so getShareValue can calculate proportional value
+        s_totalShares += shares;
+
         return shares;
     }
 
@@ -99,6 +102,9 @@ contract CompoundV3Adapter is IProtocolAdapter {
 
         amount = balanceAfterWithdrawal - balanceBeforeWithdrawal; // @audit this is a bug // i fixed it by capturing the erc20 balance change between withdrawal and after withdrawal.
 
+        // This burn shares from total supply
+        s_totalShares -= shares;
+
         // STEP 4: Transfer tokens back to YieldAggregator
         IERC20(token).safeTransfer(msg.sender, amount);
 
@@ -106,7 +112,14 @@ contract CompoundV3Adapter is IProtocolAdapter {
         return amount;
     }
 
-    function getShareValue(address token, uint256 shares) external returns (uint256) {}
+    function getShareValue(address token, uint256 shares) external returns (uint256) {
+        if (s_totalShares == 0) return 0;
+
+        uint256 totalCometBalance = i_comet.balanceOf(address(this));
+
+        // Proportional value: user's fraction of total pool × current pool value
+        return (shares * totalCometBalance) / s_totalShares;
+    }
 
     // returns the total balance of shares the adapter has in Comet
     function getBalance() external view returns (uint256) {
