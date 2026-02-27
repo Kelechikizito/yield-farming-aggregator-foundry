@@ -33,6 +33,9 @@ contract CompoundV3Adapter is IProtocolAdapter {
     // this interface will be typecasted to the compound main contract address. The main contract address in this case, will be dependent on the network you choose, and token.
     IComet private immutable i_comet;
     // address private immutable i_yieldAggregator;
+    /// @dev Total shares issued across ALL user positions in this adapter
+    /// This is the denominator for proportional value calculation
+    uint256 private s_totalShares;
 
     // modifier onlyYieldAggregator() {
     //     if (msg.sender == i_yieldAggregator) {
