@@ -119,6 +119,10 @@ contract AaveV3Adapter is IProtocolAdapter {
         // STEP 2: Check adapter's underlying token balance BEFORE withdrawal
         uint256 balanceBeforeWithdrawal = IERC20(token).balanceOf(address(this));
 
+        // ✅ Subtract 1 wei to account for rayDiv/rayMul round-trip precision loss
+        // This ensures we never ask for more than Aave tracks internally
+        if (underlyingAmount > 0) underlyingAmount -= 1;
+
         // STEP 3: Withdraw from Aave
         // This will:
         // - Burn the equivalent aTokens (roughly amountToWithdraw worth)

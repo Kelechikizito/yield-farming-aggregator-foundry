@@ -88,31 +88,32 @@ contract CompoundV3Adapter is IProtocolAdapter {
 
     // In Compound V3, "shares" and "amount" are essentially the same thing
     function withdraw(address token, uint256 shares) external returns (uint256 amount) {
-        // In Compound V3, when you withdraw "shares", you're actually withdrawing
-        // that amount from your balance
+        // Calculate what this user's shares are worth RIGHT NOW
+        uint256 totalCometBalance = i_comet.balanceOf(address(this));
+        uint256 proportionalAmount = (shares * totalCometBalance) / s_totalShares;
+        //      ↑ 999,999,999 * 1,025,153,233 / 999,999,999 = 1,025,153,233 ✅
 
-        // STEP 1: Check adapter's token balance BEFORE withdrawal
         uint256 balanceBeforeWithdrawal = IERC20(token).balanceOf(address(this));
 
-        // STEP 2: Withdraw from Compound (this burns shares and transfers tokens to this adapter)
-        i_comet.withdraw(token, shares);
+        i_comet.withdraw(token, proportionalAmount); // withdraw full value including yield
 
-        // STEP 3: Check adapter's token balance AFTER withdrawal
         uint256 balanceAfterWithdrawal = IERC20(token).balanceOf(address(this));
+        amount = balanceAfterWithdrawal - balanceBeforeWithdrawal;
 
-        amount = balanceAfterWithdrawal - balanceBeforeWithdrawal; // @audit this is a bug // i fixed it by capturing the erc20 balance change between withdrawal and after withdrawal.
+        s_totalShares -= shares; // burn user's shares from total
 
-        // This burn shares from total supply
-        s_totalShares -= shares;
-
-        // STEP 4: Transfer tokens back to YieldAggregator
         IERC20(token).safeTransfer(msg.sender, amount);
-
-        // STEP 5: Return amount
         return amount;
     }
 
-    function getShareValue(address token, uint256 shares) external returns (uint256) {
+    function getShareValue(
+        address,
+        /*token*/
+        uint256 shares
+    )
+        external
+        returns (uint256)
+    {
         if (s_totalShares == 0) return 0;
 
         uint256 totalCometBalance = i_comet.balanceOf(address(this));
