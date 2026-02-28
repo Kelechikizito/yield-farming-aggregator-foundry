@@ -29,6 +29,10 @@ contract YieldAggregatorTest is Test {
     uint256 OWNER_USDC_BALANCE = 10_000e6;
     uint256 OWNER_ETH_BALANCE = 1 ether;
 
+    address public SECOND_USER = makeAddr("second_user");
+    uint256 SECOND_USER_USDC_BALANCE = 100_000e6;
+    uint256 SECOND_USER_ETH_BALANCE = 10 ether;
+
     function setUp() public {
         vm.prank(OWNER);
         yieldAggregator = new YieldAggregator();
@@ -354,10 +358,6 @@ contract YieldAggregatorTest is Test {
         assertEq(positionCountAfter, 0, "Should have 0 positions after withdrawal");
     }
 
-    // function testInterestAccruesOnInvestmentOvertimeOnMainnet() external {
-    //     vm.warp(block.timestamp + 365 days); // simulate time passage to accrue some interest, this interest accrual doesn't work on testnet only on mainnet
-    // }
-
     /*//////////////////////////////////////////////////////////////
                         GETTER FUNCTIONS TESTS
     //////////////////////////////////////////////////////////////*/
@@ -524,5 +524,80 @@ contract YieldAggregatorTest is Test {
 
     /*//////////////////////////////////////////////////////////////
                         MULTIPLE USERS EDGE CASE TESTS
+    //////////////////////////////////////////////////////////////*/
+    function testMultipleUsersCanInvestAndWithdrawSuccessfully__Aave() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1000e6;
+        uint256 SECOND_USER_INVESTED_AMOUNT = 50000e6;
+
+        //@notice This is the USDC address on Ethereum Sepolia network for aave
+        address AAVE_ETH_MAINNET_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
+        address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT
+        //@notice This funds the owner and second user with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        vm.deal(SECOND_USER, SECOND_USER_ETH_BALANCE);
+
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(AAVE_ETH_MAINNET_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        deal(AAVE_ETH_MAINNET_USDC_ADDRESS, SECOND_USER, SECOND_USER_USDC_BALANCE);
+
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        vm.prank(OWNER);
+        aaveV3Adapter = new AaveV3Adapter(AAVE_POOL_ADDRESSES_PROVIDER);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("aaveV3_USDC", address(aaveV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+
+        vm.prank(SECOND_USER);
+        IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), SECOND_USER_USDC_BALANCE);
+
+        vm.prank(OWNER);
+        uint256 ownerPositionIndex =
+            yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "aaveV3_USDC");
+
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+
+        vm.prank(SECOND_USER);
+        uint256 secondUserPositionIndex =
+            yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, SECOND_USER_INVESTED_AMOUNT, "aaveV3_USDC");
+
+        vm.warp(block.timestamp + 365 days);
+        vm.roll(block.number + (365 days / 12));
+
+        vm.prank(OWNER);
+        yieldAggregator.withdraw(ownerPositionIndex);
+
+        vm.prank(SECOND_USER);
+        yieldAggregator.withdraw(secondUserPositionIndex);
+
+        // ASSERT
+        uint256 ownerBalanceAfter = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 positionCountAfter = yieldAggregator.getUserPositionCount(OWNER);
+
+        // Verify balance increased
+        assertGt(ownerBalanceAfter, ownerBalanceBefore, "Owner balance should increase after withdrawal");
+        console2.log("Owner balance before withdrawal: ", ownerBalanceBefore);
+        console2.log("Owner balance after withdrawal: ", ownerBalanceAfter);
+
+        assertEq(ownerPositionIndex, 0);
+        console2.log("Owner invested amount: ", INVESTED_AMOUNT);
+        
+        assertEq(secondUserPositionIndex, 0);
+        console2.log("Second user invested amount: ", SECOND_USER_INVESTED_AMOUNT);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+            ONE USER MULTIPLE INVESTMENT EDGE CASE TESTS
     //////////////////////////////////////////////////////////////*/
 }
