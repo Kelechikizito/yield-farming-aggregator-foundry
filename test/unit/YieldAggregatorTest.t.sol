@@ -615,7 +615,7 @@ contract YieldAggregatorTest is Test {
 
     function testMultipleUsersCanInvestAndWithdrawSuccessfully__Compound() external {
         // ARRANGE
-        uint256 INVESTED_AMOUNT = 1000e6;
+        uint256 INVESTED_AMOUNT = 10000e6;
         uint256 SECOND_USER_INVESTED_AMOUNT = 50000e6;
         //@notice This is the USDC address on Ethereum Mainnet network
         address ETH_MAINNET_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -717,7 +717,7 @@ contract YieldAggregatorTest is Test {
         //@notice Foundry cheatcode to send tokens to an address
         deal(AAVE_ETH_MAINNET_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
 
-        // uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
         //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
 
         vm.prank(OWNER);
@@ -734,49 +734,216 @@ contract YieldAggregatorTest is Test {
         uint256 ownerFirstPositionIndex =
             yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "aaveV3_USDC");
 
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING_FIRST_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+
         vm.warp(block.timestamp + 365 days);
         vm.roll(block.number + (365 days / 12));
+
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING_SECOND_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
 
         vm.prank(OWNER);
         uint256 ownerSecondPositionIndexBeforeWithdrawal =
             yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, SECOND_INVESTED_AMOUNT, "aaveV3_USDC");
 
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING_SECOND_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+
         vm.warp(block.timestamp + 365 days);
         vm.roll(block.number + (365 days / 12));
 
         vm.prank(OWNER);
         yieldAggregator.withdraw(ownerFirstPositionIndex);
+        uint256 OWNER_USDC_BALANCE_AFTER_WITHDRAWAL_FIRST_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
 
         vm.prank(OWNER);
         yieldAggregator.withdraw(ownerFirstPositionIndex);
+        uint256 SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL_SECOND_TIME =
+            IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
 
         // ASSERT
-        // uint256 OWNER_USDC_BALANCE_AFTER_WITHDRAWAL = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
-        // uint256 SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(SECOND_USER);
 
-        // Verify owner balance increased after withdrawal
-        // console2.log("Owner balance before investing: ", OWNER_USDC_BALANCE_BEFORE_INVESTING);
-        // console2.log("Owner balance after withdrawal: ", OWNER_USDC_BALANCE_AFTER_WITHDRAWAL);
-        // assertGt(
-        //     OWNER_USDC_BALANCE_AFTER_WITHDRAWAL,
-        //     OWNER_USDC_BALANCE_BEFORE_INVESTING,
-        //     "Owner balance should increase after withdrawal"
-        // );
+        // ✅ Balance decreased after each investment
+        assertEq(
+            OWNER_USDC_BALANCE_AFTER_INVESTING_FIRST_TIME,
+            OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME - INVESTED_AMOUNT,
+            "Owner balance should decrease by invested amount after first investment"
+        );
+        assertEq(
+            OWNER_USDC_BALANCE_AFTER_INVESTING_SECOND_TIME,
+            OWNER_USDC_BALANCE_BEFORE_INVESTING_SECOND_TIME - SECOND_INVESTED_AMOUNT,
+            "Owner balance should decrease by invested amount after second investment"
+        );
 
-        // Verify second_user balance increased after withdrawal
-        // console2.log("Second user balance before investing: ", SECOND_USER_USDC_BALANCE_BEFORE_INVESTING);
-        // console2.log("Second user balance after withdrawal: ", SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL);
-        // assertGt(
-        //     SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL,
-        
-        //     SECOND_USER_USDC_BALANCE_BEFORE_INVESTING,
-        //     "Second user balance should increase after withdrawal"
-        // );
+        // ✅ Balance increased after each withdrawal
+        assertGt(
+            OWNER_USDC_BALANCE_AFTER_WITHDRAWAL_FIRST_TIME,
+            OWNER_USDC_BALANCE_AFTER_INVESTING_SECOND_TIME,
+            "Owner balance should increase after first withdrawal"
+        );
+        assertGt(
+            SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL_SECOND_TIME,
+            OWNER_USDC_BALANCE_AFTER_WITHDRAWAL_FIRST_TIME,
+            "Owner balance should increase after second withdrawal"
+        );
+
+        // ✅ Yield was earned — final balance exceeds total amount invested
+        assertGt(
+            SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL_SECOND_TIME,
+            OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME,
+            "Owner should have earned yield overall"
+        );
+
+        // ✅ All positions closed — no active positions remain
+        assertEq(
+            yieldAggregator.getUserPositionCount(OWNER),
+            0,
+            "Owner should have no remaining positions after both withdrawals"
+        );
 
         assertEq(ownerFirstPositionIndex, 0);
         console2.log("Owner first invested amount: ", INVESTED_AMOUNT);
 
-        assertEq(ownerSecondPositionIndexBeforeWithdrawal, 1, "Second position index is one before withdrawal of first position");
+        assertEq(
+            ownerSecondPositionIndexBeforeWithdrawal,
+            1,
+            "Second position index is one before withdrawal of first position"
+        );
         console2.log("Owner second invested amount: ", SECOND_INVESTED_AMOUNT);
+
+        console2.log("Owner USDC balance before investing first time: ", OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME);
+        console2.log("Owner USDC balance after investing first time: ", OWNER_USDC_BALANCE_AFTER_INVESTING_FIRST_TIME);
+        console2.log(
+            "Owner USDC balance before investing second time: ", OWNER_USDC_BALANCE_BEFORE_INVESTING_SECOND_TIME
+        );
+        console2.log("Owner USDC balance after investing second time: ", OWNER_USDC_BALANCE_AFTER_INVESTING_SECOND_TIME);
+        console2.log("Owner USDC balance after withdrawal first time: ", OWNER_USDC_BALANCE_AFTER_WITHDRAWAL_FIRST_TIME);
+        console2.log(
+            "Owner USDC balance after withdrawal second time: ", SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL_SECOND_TIME
+        );
     }
+
+    function testUserCanInvestAndWithdrawSuccessfullyMultipleTimes__Compound() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 10000e6;
+        uint256 SECOND_INVESTED_AMOUNT = 50000e6;
+        //@notice This is the USDC address on Ethereum Mainnet network
+        address ETH_MAINNET_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Mainnet network
+        address COMPOUND_ETH_MAINNET_USDC_ADDRESS = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+        //@notice create a fork of Ethereum Mainnet network
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT
+        //@notice This funds the owner and second user with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(ETH_MAINNET_USDC_ADDRESS, OWNER, SECOND_USER_USDC_BALANCE);
+
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_MAINNET_USDC_ADDRESS);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), SECOND_USER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+
+        vm.prank(OWNER);
+        uint256 ownerFirstPositionIndex =
+            yieldAggregator.invest(ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "compoundV3_USDC");
+
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING_FIRST_TIME = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+
+        vm.warp(block.timestamp + 365 days);
+        vm.roll(block.number + (365 days / 12));
+
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING_SECOND_TIME = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+
+        vm.prank(OWNER);
+        uint256 ownerSecondPositionIndexBeforeWithdrawal =
+            yieldAggregator.invest(ETH_MAINNET_USDC_ADDRESS, SECOND_INVESTED_AMOUNT, "compoundV3_USDC");
+
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING_SECOND_TIME = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+
+        vm.warp(block.timestamp + 365 days);
+        vm.roll(block.number + (365 days / 12));
+
+        vm.prank(OWNER);
+        yieldAggregator.withdraw(ownerFirstPositionIndex);
+        uint256 OWNER_USDC_BALANCE_AFTER_WITHDRAWAL_FIRST_TIME = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+
+        vm.prank(OWNER);
+        yieldAggregator.withdraw(ownerFirstPositionIndex);
+        uint256 SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL_SECOND_TIME =
+            IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+
+        // ASSERT
+
+        // ✅ Balance decreased after each investment
+        assertEq(
+            OWNER_USDC_BALANCE_AFTER_INVESTING_FIRST_TIME,
+            OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME - INVESTED_AMOUNT,
+            "Owner balance should decrease by invested amount after first investment"
+        );
+        assertEq(
+            OWNER_USDC_BALANCE_AFTER_INVESTING_SECOND_TIME,
+            OWNER_USDC_BALANCE_BEFORE_INVESTING_SECOND_TIME - SECOND_INVESTED_AMOUNT,
+            "Owner balance should decrease by invested amount after second investment"
+        );
+
+        // ✅ Balance increased after each withdrawal
+        assertGt(
+            OWNER_USDC_BALANCE_AFTER_WITHDRAWAL_FIRST_TIME,
+            OWNER_USDC_BALANCE_AFTER_INVESTING_SECOND_TIME,
+            "Owner balance should increase after first withdrawal"
+        );
+        assertGt(
+            SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL_SECOND_TIME,
+            OWNER_USDC_BALANCE_AFTER_WITHDRAWAL_FIRST_TIME,
+            "Owner balance should increase after second withdrawal"
+        );
+
+        // ✅ Yield was earned — final balance exceeds total amount invested
+        assertGt(
+            SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL_SECOND_TIME,
+            OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME,
+            "Owner should have earned yield overall"
+        );
+
+        // ✅ All positions closed — no active positions remain
+        assertEq(
+            yieldAggregator.getUserPositionCount(OWNER),
+            0,
+            "Owner should have no remaining positions after both withdrawals"
+        );
+
+        assertEq(ownerFirstPositionIndex, 0);
+        console2.log("Owner first invested amount: ", INVESTED_AMOUNT);
+
+        assertEq(
+            ownerSecondPositionIndexBeforeWithdrawal,
+            1,
+            "Second position index is one before withdrawal of first position"
+        );
+        console2.log("Owner second invested amount: ", SECOND_INVESTED_AMOUNT);
+
+        console2.log("Owner USDC balance before investing first time: ", OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME);
+        console2.log("Owner USDC balance after investing first time: ", OWNER_USDC_BALANCE_AFTER_INVESTING_FIRST_TIME);
+        console2.log(
+            "Owner USDC balance before investing second time: ", OWNER_USDC_BALANCE_BEFORE_INVESTING_SECOND_TIME
+        );
+        console2.log("Owner USDC balance after investing second time: ", OWNER_USDC_BALANCE_AFTER_INVESTING_SECOND_TIME);
+        console2.log("Owner USDC balance after withdrawal first time: ", OWNER_USDC_BALANCE_AFTER_WITHDRAWAL_FIRST_TIME);
+        console2.log(
+            "Owner USDC balance after withdrawal second time: ", SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL_SECOND_TIME
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    REVERT STATEMENTS TESTS
+    //////////////////////////////////////////////////////////////*/
+
 }
