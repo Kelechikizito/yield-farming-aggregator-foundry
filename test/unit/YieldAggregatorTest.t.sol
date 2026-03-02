@@ -738,7 +738,7 @@ contract YieldAggregatorTest is Test {
         vm.roll(block.number + (365 days / 12));
 
         vm.prank(OWNER);
-        uint256 ownerSecondPositionIndex =
+        uint256 ownerSecondPositionIndexBeforeWithdrawal =
             yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, SECOND_INVESTED_AMOUNT, "aaveV3_USDC");
 
         vm.warp(block.timestamp + 365 days);
@@ -748,7 +748,7 @@ contract YieldAggregatorTest is Test {
         yieldAggregator.withdraw(ownerFirstPositionIndex);
 
         vm.prank(OWNER);
-        yieldAggregator.withdraw(ownerSecondPositionIndex);
+        yieldAggregator.withdraw(ownerFirstPositionIndex);
 
         // ASSERT
         // uint256 OWNER_USDC_BALANCE_AFTER_WITHDRAWAL = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
@@ -768,6 +768,7 @@ contract YieldAggregatorTest is Test {
         // console2.log("Second user balance after withdrawal: ", SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL);
         // assertGt(
         //     SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL,
+        
         //     SECOND_USER_USDC_BALANCE_BEFORE_INVESTING,
         //     "Second user balance should increase after withdrawal"
         // );
@@ -775,7 +776,7 @@ contract YieldAggregatorTest is Test {
         assertEq(ownerFirstPositionIndex, 0);
         console2.log("Owner first invested amount: ", INVESTED_AMOUNT);
 
-        assertEq(ownerSecondPositionIndex, 1);
+        assertEq(ownerSecondPositionIndexBeforeWithdrawal, 1, "Second position index is one before withdrawal of first position");
         console2.log("Owner second invested amount: ", SECOND_INVESTED_AMOUNT);
     }
 }
