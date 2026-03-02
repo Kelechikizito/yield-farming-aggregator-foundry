@@ -23,7 +23,7 @@ contract YieldAggregatorTest is Test {
     CompoundV3Adapter compoundV3Adapter;
     AaveV3Adapter aaveV3Adapter;
     uint256 positionIndex;
-    uint256 ethSepoliaFork;
+    uint256 ethMainnetFork;
 
     address public OWNER = makeAddr("owner");
     uint256 OWNER_USDC_BALANCE = 10_000e6;
@@ -86,7 +86,7 @@ contract YieldAggregatorTest is Test {
         //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Mainnet network
         address COMPOUND_ETH_MAINNET_USDC_ADDRESS = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
         //@notice create a fork of Ethereum Mainnet network
-        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
 
         // ACT
         //@notice This funds the owner with some ETH to pay for gas fees
@@ -120,7 +120,7 @@ contract YieldAggregatorTest is Test {
         //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
         address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
         //@notice create a fork of Ethereum Sepolia network
-        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
 
         // ACT
         //@notice This funds the owner with some ETH to pay for gas fees
@@ -155,7 +155,7 @@ contract YieldAggregatorTest is Test {
         //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
         address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
         //@notice create a fork of Ethereum Sepolia network
-        ethSepoliaFork = vm.createSelectFork("sepolia_eth");
+        ethMainnetFork = vm.createSelectFork("sepolia_eth");
 
         // ACT
         //@notice This funds the owner with some ETH to pay for gas fees
@@ -184,7 +184,7 @@ contract YieldAggregatorTest is Test {
         //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
         address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
         //@notice create a fork of Ethereum Sepolia network
-        ethSepoliaFork = vm.createSelectFork("sepolia_eth");
+        ethMainnetFork = vm.createSelectFork("sepolia_eth");
 
         // ACT
         //@notice This funds the owner with some ETH to pay for gas fees
@@ -213,7 +213,7 @@ contract YieldAggregatorTest is Test {
         //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Sepolia network
         address COMPOUND_ETH_SEPOLIA_USDC_ADDRESS = 0xAec1F48e02Cfb822Be958B68C7957156EB3F0b6e;
         //@notice create a fork of Ethereum Sepolia network
-        ethSepoliaFork = vm.createSelectFork("sepolia_eth");
+        ethMainnetFork = vm.createSelectFork("sepolia_eth");
 
         // ACT
         //@notice This funds the owner with some ETH to pay for gas fees
@@ -242,7 +242,7 @@ contract YieldAggregatorTest is Test {
         //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Mainnet network
         address COMPOUND_ETH_MAINNET_USDC_ADDRESS = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
         //@notice create a fork of Ethereum Mainnet network
-        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
 
         // ACT
         //@notice This funds the owner with some ETH to pay for gas fees
@@ -271,7 +271,7 @@ contract YieldAggregatorTest is Test {
         //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
         address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
         //@notice create a fork of Ethereum Sepolia network
-        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
 
         // ACT
         //@notice This funds the owner with some ETH to pay for gas fees
@@ -312,12 +312,14 @@ contract YieldAggregatorTest is Test {
         yieldAggregator.withdraw(positionIndex);
 
         // ASSERT
-        uint256 ownerBalanceAfter = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
         uint256 positionCountAfter = yieldAggregator.getUserPositionCount(OWNER);
 
         // Verify balance increased
-        assertGt(ownerBalanceAfter, ownerBalanceBefore, "Owner balance should increase after withdrawal");
-        // assertEq(ownerBalanceAfter, ownerBalanceBefore + 1e6); // This assertion line will fail because it accrued interest.
+        assertGt(
+            OWNER_USDC_BALANCE_AFTER_INVESTING, ownerBalanceBefore, "Owner balance should increase after withdrawal"
+        );
+        // assertEq(OWNER_USDC_BALANCE_AFTER_INVESTING, ownerBalanceBefore + 1e6); // This assertion line will fail because it accrued interest.
 
         // Verify position was removed
         assertEq(positionCountAfter, positionCountBefore - 1, "Position count should decrease by 1");
@@ -344,14 +346,16 @@ contract YieldAggregatorTest is Test {
         yieldAggregator.withdraw(positionIndex);
 
         // ASSERT
-        uint256 ownerBalanceAfter = IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(AAVE_ETH_SEPOLIA_USDC_ADDRESS).balanceOf(OWNER);
         uint256 positionCountAfter = yieldAggregator.getUserPositionCount(OWNER);
 
         // Verify balance increased
-        assertGt(ownerBalanceAfter, ownerBalanceBefore, "Owner balance should increase after withdrawal");
+        assertGt(
+            OWNER_USDC_BALANCE_AFTER_INVESTING, ownerBalanceBefore, "Owner balance should increase after withdrawal"
+        );
         console2.log("Owner balance before withdrawal: ", ownerBalanceBefore);
-        console2.log("Owner balance after withdrawal: ", ownerBalanceAfter);
-        // assertEq(ownerBalanceAfter, ownerBalanceBefore + 1e6); // This assertion line will fail because it accrued interest.
+        console2.log("Owner balance after withdrawal: ", OWNER_USDC_BALANCE_AFTER_INVESTING);
+        // assertEq(OWNER_USDC_BALANCE_AFTER_INVESTING, ownerBalanceBefore + 1e6); // This assertion line will fail because it accrued interest.
 
         // Verify position was removed
         assertEq(positionCountAfter, positionCountBefore - 1, "Position count should decrease by 1");
@@ -386,7 +390,7 @@ contract YieldAggregatorTest is Test {
         //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
         address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
         //@notice create a fork of Ethereum Sepolia network
-        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
 
         // ACT
         //@notice This funds the owner with some ETH to pay for gas fees
@@ -424,7 +428,7 @@ contract YieldAggregatorTest is Test {
         //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Mainnet network
         address COMPOUND_ETH_MAINNET_USDC_ADDRESS = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
         //@notice create a fork of Ethereum Mainnet network
-        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
 
         // ACT
         //@notice This funds the owner with some ETH to pay for gas fees
@@ -535,7 +539,7 @@ contract YieldAggregatorTest is Test {
         //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
         address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
         //@notice create a fork of Ethereum Sepolia network
-        ethSepoliaFork = vm.createSelectFork("mainnet_eth");
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
 
         // ACT
         //@notice This funds the owner and second user with some ETH to pay for gas fees
@@ -547,6 +551,7 @@ contract YieldAggregatorTest is Test {
         deal(AAVE_ETH_MAINNET_USDC_ADDRESS, SECOND_USER, SECOND_USER_USDC_BALANCE);
 
         uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 SECOND_USER_USDC_BALANCE_BEFORE_INVESTING = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(SECOND_USER);
         //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
 
         vm.prank(OWNER);
@@ -566,8 +571,6 @@ contract YieldAggregatorTest is Test {
         uint256 ownerPositionIndex =
             yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "aaveV3_USDC");
 
-        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
-
         vm.prank(SECOND_USER);
         uint256 secondUserPositionIndex =
             yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, SECOND_USER_INVESTED_AMOUNT, "aaveV3_USDC");
@@ -582,17 +585,112 @@ contract YieldAggregatorTest is Test {
         yieldAggregator.withdraw(secondUserPositionIndex);
 
         // ASSERT
-        uint256 ownerBalanceAfter = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
-        uint256 positionCountAfter = yieldAggregator.getUserPositionCount(OWNER);
+        uint256 OWNER_USDC_BALANCE_AFTER_WITHDRAWAL = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(SECOND_USER);
 
-        // Verify balance increased
-        assertGt(ownerBalanceAfter, ownerBalanceBefore, "Owner balance should increase after withdrawal");
-        console2.log("Owner balance before withdrawal: ", ownerBalanceBefore);
-        console2.log("Owner balance after withdrawal: ", ownerBalanceAfter);
+        // Verify owner balance increased after withdrawal
+        console2.log("Owner balance before investing: ", OWNER_USDC_BALANCE_BEFORE_INVESTING);
+        console2.log("Owner balance after withdrawal: ", OWNER_USDC_BALANCE_AFTER_WITHDRAWAL);
+        assertGt(
+            OWNER_USDC_BALANCE_AFTER_WITHDRAWAL,
+            OWNER_USDC_BALANCE_BEFORE_INVESTING,
+            "Owner balance should increase after withdrawal"
+        );
+
+        // Verify second_user balance increased after withdrawal
+        console2.log("Second user balance before investing: ", SECOND_USER_USDC_BALANCE_BEFORE_INVESTING);
+        console2.log("Second user balance after withdrawal: ", SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL);
+        assertGt(
+            SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL,
+            SECOND_USER_USDC_BALANCE_BEFORE_INVESTING,
+            "Second user balance should increase after withdrawal"
+        );
 
         assertEq(ownerPositionIndex, 0);
         console2.log("Owner invested amount: ", INVESTED_AMOUNT);
-        
+
+        assertEq(secondUserPositionIndex, 0);
+        console2.log("Second user invested amount: ", SECOND_USER_INVESTED_AMOUNT);
+    }
+
+    function testMultipleUsersCanInvestAndWithdrawSuccessfully__Compound() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1000e6;
+        uint256 SECOND_USER_INVESTED_AMOUNT = 50000e6;
+        //@notice This is the USDC address on Ethereum Mainnet network
+        address ETH_MAINNET_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Mainnet network
+        address COMPOUND_ETH_MAINNET_USDC_ADDRESS = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+        //@notice create a fork of Ethereum Mainnet network
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT
+        //@notice This funds the owner and second user with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        vm.deal(SECOND_USER, SECOND_USER_ETH_BALANCE);
+
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(ETH_MAINNET_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        deal(ETH_MAINNET_USDC_ADDRESS, SECOND_USER, SECOND_USER_USDC_BALANCE);
+
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 SECOND_USER_USDC_BALANCE_BEFORE_INVESTING = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(SECOND_USER);
+
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_MAINNET_USDC_ADDRESS);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+
+        vm.prank(SECOND_USER);
+        IERC20(ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), SECOND_USER_USDC_BALANCE);
+
+        vm.prank(OWNER);
+        uint256 ownerPositionIndex =
+            yieldAggregator.invest(ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "compoundV3_USDC");
+
+        vm.prank(SECOND_USER);
+        uint256 secondUserPositionIndex =
+            yieldAggregator.invest(ETH_MAINNET_USDC_ADDRESS, SECOND_USER_INVESTED_AMOUNT, "compoundV3_USDC");
+
+        vm.warp(block.timestamp + 365 days);
+        vm.roll(block.number + (365 days / 12));
+
+        vm.prank(OWNER);
+        yieldAggregator.withdraw(ownerPositionIndex);
+
+        vm.prank(SECOND_USER);
+        yieldAggregator.withdraw(secondUserPositionIndex);
+
+        // ASSERT
+        uint256 OWNER_USDC_BALANCE_AFTER_WITHDRAWAL = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        uint256 SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(SECOND_USER);
+
+        // Verify owner balance increased after withdrawal
+        console2.log("Owner balance before investing: ", OWNER_USDC_BALANCE_BEFORE_INVESTING);
+        console2.log("Owner balance after withdrawal: ", OWNER_USDC_BALANCE_AFTER_WITHDRAWAL);
+        assertGt(
+            OWNER_USDC_BALANCE_AFTER_WITHDRAWAL,
+            OWNER_USDC_BALANCE_BEFORE_INVESTING,
+            "Owner balance should increase after withdrawal"
+        );
+
+        // Verify second_user balance increased after withdrawal
+        console2.log("Second user balance before investing: ", SECOND_USER_USDC_BALANCE_BEFORE_INVESTING);
+        console2.log("Second user balance after withdrawal: ", SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL);
+        assertGt(
+            SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL,
+            SECOND_USER_USDC_BALANCE_BEFORE_INVESTING,
+            "Second user balance should increase after withdrawal"
+        );
+
+        assertEq(ownerPositionIndex, 0);
+        console2.log("Owner invested amount: ", INVESTED_AMOUNT);
+
         assertEq(secondUserPositionIndex, 0);
         console2.log("Second user invested amount: ", SECOND_USER_INVESTED_AMOUNT);
     }
@@ -600,4 +698,84 @@ contract YieldAggregatorTest is Test {
     /*//////////////////////////////////////////////////////////////
             ONE USER MULTIPLE INVESTMENT EDGE CASE TESTS
     //////////////////////////////////////////////////////////////*/
+    function testUserCanInvestAndWithdrawSuccessfullyMultipleTimes__Aave() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1000e6;
+        uint256 SECOND_INVESTED_AMOUNT = 5000e6;
+
+        //@notice This is the USDC address on Ethereum Sepolia network for aave
+        address AAVE_ETH_MAINNET_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
+        address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT
+        //@notice This funds the owner and second user with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(AAVE_ETH_MAINNET_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+
+        // uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        vm.prank(OWNER);
+        aaveV3Adapter = new AaveV3Adapter(AAVE_POOL_ADDRESSES_PROVIDER);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("aaveV3_USDC", address(aaveV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+
+        vm.prank(OWNER);
+        uint256 ownerFirstPositionIndex =
+            yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "aaveV3_USDC");
+
+        vm.warp(block.timestamp + 365 days);
+        vm.roll(block.number + (365 days / 12));
+
+        vm.prank(OWNER);
+        uint256 ownerSecondPositionIndex =
+            yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, SECOND_INVESTED_AMOUNT, "aaveV3_USDC");
+
+        vm.warp(block.timestamp + 365 days);
+        vm.roll(block.number + (365 days / 12));
+
+        vm.prank(OWNER);
+        yieldAggregator.withdraw(ownerFirstPositionIndex);
+
+        vm.prank(OWNER);
+        yieldAggregator.withdraw(ownerSecondPositionIndex);
+
+        // ASSERT
+        // uint256 OWNER_USDC_BALANCE_AFTER_WITHDRAWAL = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        // uint256 SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(SECOND_USER);
+
+        // Verify owner balance increased after withdrawal
+        // console2.log("Owner balance before investing: ", OWNER_USDC_BALANCE_BEFORE_INVESTING);
+        // console2.log("Owner balance after withdrawal: ", OWNER_USDC_BALANCE_AFTER_WITHDRAWAL);
+        // assertGt(
+        //     OWNER_USDC_BALANCE_AFTER_WITHDRAWAL,
+        //     OWNER_USDC_BALANCE_BEFORE_INVESTING,
+        //     "Owner balance should increase after withdrawal"
+        // );
+
+        // Verify second_user balance increased after withdrawal
+        // console2.log("Second user balance before investing: ", SECOND_USER_USDC_BALANCE_BEFORE_INVESTING);
+        // console2.log("Second user balance after withdrawal: ", SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL);
+        // assertGt(
+        //     SECOND_USER_USDC_BALANCE_AFTER_WITHDRAWAL,
+        //     SECOND_USER_USDC_BALANCE_BEFORE_INVESTING,
+        //     "Second user balance should increase after withdrawal"
+        // );
+
+        assertEq(ownerFirstPositionIndex, 0);
+        console2.log("Owner first invested amount: ", INVESTED_AMOUNT);
+
+        assertEq(ownerSecondPositionIndex, 1);
+        console2.log("Owner second invested amount: ", SECOND_INVESTED_AMOUNT);
+    }
 }
