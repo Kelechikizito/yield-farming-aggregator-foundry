@@ -281,6 +281,7 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
         UserPosition memory position = userInvestmentPositions[positionIndex]; // this line remains holds the same variable even after swap and pop removal because it has already been defined in memory. defining it in memory makes a copy of the intended struct rather than referencing the original/storage struct so any changes to the storage array won't affect this copy.
         // STEP 4: Get the adapter (the bridge to that protocol)
         address adapter = s_protocolAdapters[position.protocolName];
+        ///@notice This revert statement would most probably not hit because the addAdapter function has a noneZeroAddress modifier which means no protocol can be added with an empty address, but it's still good to have this check here just in case.
         if (adapter == address(0)) {
             revert YieldAggregator__ProtocolNotSupported();
         }
@@ -322,13 +323,13 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
 
         // STEP 2: Determine target protocol
         string memory targetProtocol = preferredProtocol;
-        // this conditional means that if a user doesn't provide a preferredProtocol, i.e, if the preferredProtocol is empty, the strategymanager should find the best protocol for the particular token
         if (bytes(preferredProtocol).length == 0) {
             revert YieldAggregator__ProtocolNotSupported();
         }
 
         // STEP 3: Check if the protocol adapter exists in your mapping
         address adapter = s_protocolAdapters[targetProtocol];
+        ///@notice This revert statement would most probably not hit because the addAdapter function has a noneZeroAddress modifier which means no protocol can be added with an empty address, but it's still good to have this check here just in case.
         if (adapter == address(0)) {
             revert YieldAggregator__ProtocolNotSupported();
         }
@@ -387,6 +388,8 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
         UserPosition memory position = s_userPositions[user][positionIndex];
 
         address adapter = s_protocolAdapters[position.protocolName];
+        ///@notice This revert statement would most probably not hit because the addAdapter function has a noneZeroAddress modifier which means no protocol can be added with an empty address, but it's still good to have this check here just in case.
+
         if (adapter == address(0)) {
             revert YieldAggregator__ProtocolNotSupported();
         }

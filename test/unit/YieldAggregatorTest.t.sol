@@ -294,7 +294,7 @@ contract YieldAggregatorTest is Test {
         _;
     }
 
-    /// @notice Test that owner can withdraw successfully and receives funds from Compound
+    /// @notice Test that owner can withdraw successfully and receives funds from Compound Protocol
     function testOwnerCanWithdrawFromASpecificProtocolSuccessfully__Compound()
         external
         investedIntoASpecificProtocol__Compound
@@ -945,5 +945,126 @@ contract YieldAggregatorTest is Test {
     /*//////////////////////////////////////////////////////////////
                     REVERT STATEMENTS TESTS
     //////////////////////////////////////////////////////////////*/
+    function testRevertsIfUserTokenBalanceIsInsufficientWhileInvesting() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1000e6;
+        uint256 SECOND_INVESTED_AMOUNT = 5000e6;
 
+        //@notice This is the USDC address on Ethereum Sepolia network for aave
+        address AAVE_ETH_MAINNET_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
+        address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT & ASSERT
+        //@notice This funds the owner and second user with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        vm.prank(OWNER);
+        aaveV3Adapter = new AaveV3Adapter(AAVE_POOL_ADDRESSES_PROVIDER);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("aaveV3_USDC", address(aaveV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+
+        vm.prank(OWNER);
+        vm.expectRevert(YieldAggregator.YieldAggregator__InsufficientBalance.selector);
+        uint256 ownerFirstPositionIndex =
+            yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "aaveV3_USDC");
+        // ASSERT
+    }
+
+    function testRevertsIfProtocolIsNotSupported() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1000e6;
+        uint256 SECOND_INVESTED_AMOUNT = 5000e6;
+
+        //@notice This is the USDC address on Ethereum Sepolia network for aave
+        address AAVE_ETH_MAINNET_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
+        address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT & ASSERT
+        //@notice This funds the owner and second user with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(AAVE_ETH_MAINNET_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        vm.prank(OWNER);
+        aaveV3Adapter = new AaveV3Adapter(AAVE_POOL_ADDRESSES_PROVIDER);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("aaveV3_USDC", address(aaveV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+
+        vm.prank(OWNER);
+        vm.expectRevert(YieldAggregator.YieldAggregator__ProtocolNotSupported.selector);
+        uint256 ownerFirstPositionIndex = yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "");
+    }
+
+    function testRevertsIfInvestmentPositionDoesNotExist() external {
+        // ARRANGE
+        uint256 INVESTED_AMOUNT = 1000e6;
+        uint256 SECOND_INVESTED_AMOUNT = 5000e6;
+
+        //@notice This is the USDC address on Ethereum Sepolia network for aave
+        address AAVE_ETH_MAINNET_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice Aave V3 PoolAddressesProvider on Ethereum Sepolia
+        address AAVE_POOL_ADDRESSES_PROVIDER = 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+        //@notice create a fork of Ethereum Sepolia network
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT & ASSERT
+        //@notice This funds the owner and second user with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(AAVE_ETH_MAINNET_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING_FIRST_TIME = IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        vm.prank(OWNER);
+        aaveV3Adapter = new AaveV3Adapter(AAVE_POOL_ADDRESSES_PROVIDER);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("aaveV3_USDC", address(aaveV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(AAVE_ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+
+        vm.prank(OWNER);
+        uint256 ownerFirstPositionIndex =
+            yieldAggregator.invest(AAVE_ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "aaveV3_USDC");
+
+        vm.warp(block.timestamp + 365 days);
+        vm.roll(block.number + (365 days / 12));
+
+        vm.prank(OWNER);
+        vm.expectRevert(YieldAggregator.YieldAggregator__PositionNotFound.selector);
+        yieldAggregator.withdraw(ownerFirstPositionIndex + 1);
+        vm.expectRevert(YieldAggregator.YieldAggregator__PositionNotFound.selector);
+        yieldAggregator.getUserPositionByIndex(OWNER, ownerFirstPositionIndex + 1);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            FUZZ TESTS
+    //////////////////////////////////////////////////////////////*/
 }
