@@ -147,7 +147,7 @@ interface IYieldAggregator {
      * @param maxGas Maximum gas price willing to pay
      * @param slippage Acceptable slippage tolerance (basis points)
      */
-    function setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) external;
+    // function setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) external;
 
     /*//////////////////////////////////////////////////////////////
                         VIEW FUNCTIONS

@@ -193,9 +193,9 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
         _addAdapter(protocolName, adapterAddress);
     }
 
-    function setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) external {
-        _setAutoCompoundSettings(enabled, minReward, maxGas, slippage);
-    }
+    // function setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) external {
+    //     _setAutoCompoundSettings(enabled, minReward, maxGas, slippage);
+    // }
 
     function withdraw(uint256 positionIndex) external nonReentrant {
         _withdraw(positionIndex);
@@ -255,13 +255,13 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
      * @param maxGas the maximum gas price the user is willing to pay for auto-compounding
      * @param slippage the acceptable slippage tolerance in basis points (bps)
      */
-    function _setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) internal {
-        s_userSettings[msg.sender] = AutoCompoundSettings({
-            enabled: enabled, minRewardThreshold: minReward, maxGasPrice: maxGas, slippageTolerance: slippage
-        });
+    // function _setAutoCompoundSettings(bool enabled, uint256 minReward, uint256 maxGas, uint256 slippage) internal {
+    //     s_userSettings[msg.sender] = AutoCompoundSettings({
+    //         enabled: enabled, minRewardThreshold: minReward, maxGasPrice: maxGas, slippageTolerance: slippage
+    //     });
 
-        emit AutoCompoundSettingsChanged(msg.sender, enabled, minReward, maxGas, slippage);
-    }
+    //     emit AutoCompoundSettingsChanged(msg.sender, enabled, minReward, maxGas, slippage);
+    // }
 
     /**
      * @notice Withdraw funds from a specific investment position
@@ -344,6 +344,7 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
 
         uint256 invalidShares = 0;
         // uint256 MIN_SHARES = 1000;
+        //@notice Realistically, this error will not hit.
         if (shares == invalidShares) {
             revert YieldAggregator__InvalidSharesReceived();
         } // isn't it possible for shares to be zero?

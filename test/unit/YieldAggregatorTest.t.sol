@@ -9,6 +9,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IComet} from "src/interfaces/IComet.sol";
 import {SelfDestruct} from "test/utils/SelfDestruct.sol";
+import {EthRejector} from "test/utils/EthRejector.sol";
 
 // import {MockERC20} from "./mocks/MockERC20.sol";
 // import {MockAavePool} from "./mocks/MockAavePool.sol";
@@ -1062,6 +1063,36 @@ contract YieldAggregatorTest is Test {
         yieldAggregator.withdraw(ownerFirstPositionIndex + 1);
         vm.expectRevert(YieldAggregator.YieldAggregator__PositionNotFound.selector);
         yieldAggregator.getUserPositionByIndex(OWNER, ownerFirstPositionIndex + 1);
+    }
+
+    function testWithdrawETHRevertsIncaseOfFailedETHWithdrawal() external {
+        // ARRANGE
+        address sender = makeAddr("sender");
+        EthRejector ethRejector = new EthRejector();
+
+        // ACT & ASSERT
+        vm.prank(OWNER);
+        vm.deal(sender, 1 ether);
+        SelfDestruct selfDestructContract = new SelfDestruct();
+
+        vm.prank(sender);
+        (bool success,) = address(selfDestructContract).call{value: 1 ether}("");
+
+        vm.prank(OWNER);
+        selfDestructContract.destroy(payable(address(yieldAggregator)));
+
+        vm.prank(OWNER);
+        vm.expectRevert(YieldAggregator.YieldAggregator__FailedETHWithdrawal.selector);
+        yieldAggregator.withdrawETH(payable(address(ethRejector)), 1 ether);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            ADAPTER TESTS
+    //////////////////////////////////////////////////////////////*/
+    function testRevertsWhenAavePoolAddressProviderIsInvalid() external {
+        // ASSERT
+        vm.expectRevert(AaveV3Adapter.AaveV3Adapter__InvalidAavePoolAddressesProvider.selector);
+        aaveV3Adapter = new AaveV3Adapter(address(0));
     }
 
     /*//////////////////////////////////////////////////////////////
