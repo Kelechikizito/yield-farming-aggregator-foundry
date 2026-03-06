@@ -1095,7 +1095,57 @@ contract YieldAggregatorTest is Test {
         aaveV3Adapter = new AaveV3Adapter(address(0));
     }
 
+    function testRevertsWhenCometAddressIsInvalid() external {
+        // ASSERT
+        vm.expectRevert(CompoundV3Adapter.CompoundV3Adapter__InvalidCometAddress.selector);
+        compoundV3Adapter = new CompoundV3Adapter(address(0));
+    }
+
+    function testGetShareValueReturnsZeroIfNoTotalShares__Compound() external {
+        compoundV3Adapter = new CompoundV3Adapter(address(1));
+        uint256 returnedNumber = compoundV3Adapter.getShareValue(address(1), 100);
+        assertEq(returnedNumber, 0, "getShareValue should return zero if total shares is zero");
+    }
+
     /*//////////////////////////////////////////////////////////////
                             FUZZ TESTS
     //////////////////////////////////////////////////////////////*/
+
+    function testOwnerCanInvestIntoASpecificProtocolSuccesfullyWithDifferentAmount__Compound(uint256 randomAmount)
+        external
+    {
+        // ARRANGE
+        // Bound to realistic range
+        uint256 INVESTED_AMOUNT = bound(randomAmount, 10e6, OWNER_USDC_BALANCE);
+
+        //@notice This is the USDC address on Ethereum Mainnet network
+        address ETH_MAINNET_USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        //@notice This is the Compound V3 Comet contract address for USDC on Ethereum Mainnet network
+        address COMPOUND_ETH_MAINNET_USDC_ADDRESS = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+        //@notice create a fork of Ethereum Mainnet network
+        ethMainnetFork = vm.createSelectFork("mainnet_eth");
+
+        // ACT
+        //@notice This funds the owner with some ETH to pay for gas fees
+        vm.deal(OWNER, OWNER_ETH_BALANCE);
+        //@notice Foundry cheatcode to send tokens to an address
+        deal(ETH_MAINNET_USDC_ADDRESS, OWNER, OWNER_USDC_BALANCE);
+        uint256 OWNER_USDC_BALANCE_BEFORE_INVESTING = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+        //@notice for the test to work, I have to redeploy the yield aggregator contract since the createSelectFork changes the network context
+        vm.prank(OWNER);
+        yieldAggregator = new YieldAggregator();
+        compoundV3Adapter = new CompoundV3Adapter(COMPOUND_ETH_MAINNET_USDC_ADDRESS);
+        vm.prank(OWNER);
+        yieldAggregator.addAdapter("compoundV3_USDC", address(compoundV3Adapter));
+
+        vm.prank(OWNER);
+        IERC20(ETH_MAINNET_USDC_ADDRESS).forceApprove(address(yieldAggregator), OWNER_USDC_BALANCE); // note: owner has to approve YieldAggregator to spend her USDC tokens
+        vm.prank(OWNER);
+        positionIndex = yieldAggregator.invest(ETH_MAINNET_USDC_ADDRESS, INVESTED_AMOUNT, "compoundV3_USDC");
+        uint256 OWNER_USDC_BALANCE_AFTER_INVESTING = IERC20(ETH_MAINNET_USDC_ADDRESS).balanceOf(OWNER);
+
+        // ASSERT
+        assertEq(OWNER_USDC_BALANCE_BEFORE_INVESTING - OWNER_USDC_BALANCE_AFTER_INVESTING, INVESTED_AMOUNT);
+        assertEq(positionIndex, 0);
+    }
 }
