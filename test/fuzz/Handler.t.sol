@@ -4,118 +4,97 @@
 
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
-import {DSCEngine} from "src/DSCEngine.sol";
-import {DecentralizedStableCoin} from "src/DecentralizedStableCoin.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {MockV3Aggregator} from "test/mocks/MockV3Aggregator.sol";
+import {Test, console2} from "forge-std/Test.sol";
+import {YieldAggregator} from "src/YieldAggregator.sol";
+import {CompoundV3Adapter} from "src/adapters/CompoundV3Adapter.sol";
+import {AaveV3Adapter} from "src/adapters/AaveV3Adapter.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+
 
 contract Handler is Test {
-    DSCEngine dscE;
-    DecentralizedStableCoin dsc;
+    using SafeERC20 for IERC20;
 
-    ERC20Mock weth;
-    ERC20Mock wbtc;
+    YieldAggregator public yieldAggregator;
+    AaveV3Adapter public aaveV3Adapter;
+    CompoundV3Adapter public compoundV3Adapter;
+    IERC20 public usdc;
 
-    uint256 public timesMintIsCalled;
-    address[] public usersWithCollateralDeposited;
-    MockV3Aggregator public ethUsdPriceFeed;
-    MockV3Aggregator public btcUsdPriceFeed;
+    // ✅ Ghost variables — track expected state independently of the contract
+    mapping(address => uint256) public ghost_investCount;
+    mapping(address => uint256) public ghost_withdrawCount;
+    uint256 public ghost_totalInvests;
+    uint256 public ghost_totalWithdrawals;
 
-    uint256 MAX_DEPOSIT_SIZE = type(uint96).max; // the max uint96 value
+    // ✅ Track actors (multiple users)
+    address[] public actors;
+    address internal currentActor;
 
-    constructor(DSCEngine _dscEngine, DecentralizedStableCoin _dsc) {
-        dscE = _dscEngine;
-        dsc = _dsc;
+    uint256 constant MAX_INVEST_AMOUNT = 10_000e6; // 10,000 USDC
+    uint256 constant MIN_INVEST_AMOUNT = 10e6;     // 10 USDC
 
-        address[] memory collateralTokens = dscE.getCollateralTokens();
-        weth = ERC20Mock(collateralTokens[0]);
-        wbtc = ERC20Mock(collateralTokens[1]);
+    string constant AAVE_PROTOCOL = "aaveV3_USDC";
+    string constant COMPOUND_PROTOCOL = "compoundV3_USDC";
+    string[2] public protocols = [AAVE_PROTOCOL, COMPOUND_PROTOCOL];
 
-        ethUsdPriceFeed = MockV3Aggregator(dscE.getPriceFeed(address(weth)));
-        btcUsdPriceFeed = MockV3Aggregator(dscE.getPriceFeed(address(wbtc)));
+    constructor(   YieldAggregator _yieldAggregator,
+        AaveV3Adapter _aaveV3Adapter,
+        CompoundV3Adapter _compoundV3Adapter, IERC20 _usdc,
+        address[] memory _actors) {
+        yieldAggregator = _yieldAggregator;
+        aaveV3Adapter = _aaveV3Adapter;
+        compoundV3Adapter = _compoundV3Adapter;
+        usdc = _usdc;
+        actors = _actors;
     }
 
-    // redeem collateral <-
-    function depositCollateral(uint256 collateralSeed, uint256 amountCollateral) public {
-        ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
-        amountCollateral = bound(amountCollateral, 1, MAX_DEPOSIT_SIZE);
+    function invest(uint256 actorSeed, uint256 amount, uint256 protocolSeed) public {
+        // STEP 1: Pick a random actor
+        currentActor = actors[actorSeed % actors.length];
 
-        vm.startPrank(msg.sender);
-        collateral.mint(msg.sender, amountCollateral);
-        collateral.approve(address(dscE), amountCollateral);
-        dscE.depositCollateral(address(collateral), amountCollateral);
+        // STEP 2: Bound amount to realistic range
+        amount = bound(amount, MIN_INVEST_AMOUNT, MAX_INVEST_AMOUNT);
+
+        // STEP 3: Pick a random protocol
+        string memory protocol = protocols[protocolSeed % protocols.length];
+
+        // STEP 4: Fund actor with USDC and approve
+        deal(address(usdc), currentActor, amount);
+
+        vm.startPrank(currentActor);
+        usdc.forceApprove(address(yieldAggregator), amount);
+        yieldAggregator.invest(address(usdc), amount, protocol);
         vm.stopPrank();
-        usersWithCollateralDeposited.push(msg.sender);
+
+        // STEP 5: Update ghost variables
+        ghost_investCount[currentActor]++;
+        ghost_totalInvests++;
     }
 
-    function redeemCollateral(uint256 collateralSeed, uint256 amountCollateral) public {
-        ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
+    function withdraw(uint256 actorSeed, uint256 positionIndexSeed) public {
+        // STEP 1: Pick a random actor
+        currentActor = actors[actorSeed % actors.length];
 
-        uint256 maxCollateralToRedeem = dscE.getCollateralDeposited(address(collateral), msg.sender);
+        // STEP 2: Skip if actor has no positions — nothing to withdraw
+        uint256 positionCount = yieldAggregator.getUserPositionCount(currentActor);
+        if (positionCount == 0) return;
 
-        amountCollateral = bound(amountCollateral, 0, maxCollateralToRedeem);
-        if (amountCollateral == 0) {
-            return;
-        }
+        // STEP 3: Bound positionIndex to valid range
+        uint256 positionIndex = bound(positionIndexSeed, 0, positionCount - 1);
 
-        dscE.redeemCollateral(address(collateral), amountCollateral);
+        // STEP 4: Withdraw
+        vm.prank(currentActor);
+        yieldAggregator.withdraw(positionIndex);
+
+        // STEP 5: Update ghost variables
+        ghost_withdrawCount[currentActor]++;
+        ghost_totalWithdrawals++;
     }
 
-    function mintDsc(uint256 amount, uint256 addressSeed) public {
-        if (usersWithCollateralDeposited.length == 0) {
-            return; // No users with collateral, cannot mint
-        }
-        address sender = usersWithCollateralDeposited[addressSeed % usersWithCollateralDeposited.length];
-        (uint256 totalDscMinted, uint256 collateralValueInUsd) = dscE.getAccountInformation(sender);
-
-        int256 maxDscToMint = int256(collateralValueInUsd / 2) - int256(totalDscMinted);
-        if (maxDscToMint < 0) {
-            return;
-        }
-        // amount = bound(amount, 1, MAX_DEPOSIT_SIZE);
-        amount = bound(amount, 0, uint256(maxDscToMint));
-        if (amount == 0) {
-            return;
-        }
-
-        vm.startPrank(sender);
-        dscE.mintDsc(amount);
-        vm.stopPrank();
-        timesMintIsCalled++;
+    function getActors() external view returns (address[] memory) {
+        return actors;
     }
 
-    // This breaks our invariant test suite
-    // function updateCollateralPrice(uint96 newPrice) public {
-    //     int256 newPriceInt = int256(uint256(newPrice));
-    //     if (newPriceInt <= 0) {
-    //         return; // Price must be positive
-    //     }
-    //     ethUsdPriceFeed.updateAnswer(newPriceInt);
-    // }
 
-    function updateCollateralPrice(uint96 newPrice) public {
-        // Bound to realistic range (8 decimals for Chainlink)
-        int256 newPriceInt = int256(uint256(bound(newPrice, 100e8, 10000e8)));
-
-        // Get current price and limit change to 10%
-        (, int256 currentPrice,,,) = ethUsdPriceFeed.latestRoundData();
-        int256 maxChange = currentPrice * 10 / 100;
-
-        if (newPriceInt > currentPrice + maxChange) {
-            newPriceInt = currentPrice + maxChange;
-        } else if (newPriceInt < currentPrice - maxChange) {
-            newPriceInt = currentPrice - maxChange;
-        }
-
-        ethUsdPriceFeed.updateAnswer(newPriceInt);
-    }
-
-    // Helper Functions
-    function _getCollateralFromSeed(uint256 collateralSeed) private view returns (ERC20Mock) {
-        if (collateralSeed % 2 == 0) {
-            return weth;
-        }
-        return wbtc;
-    }
 }
