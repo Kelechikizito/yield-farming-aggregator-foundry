@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +20,6 @@ import { useProtocolRates } from "@/hooks/useProtocolRates";
 
 const SUPPORTED_CHAINS = ["Ethereum", "Arbitrum", "Optimism", "zkSync"];
 
-// Shape of the row the user clicked "Start Farming" on
 interface SelectedRow {
   protocol: string;
   chain: string;
@@ -31,18 +32,46 @@ export default function YieldTable() {
   const [selectedChain, setSelectedChain] = useState("Ethereum");
   const { rates, loading, error, refresh } = useProtocolRates(selectedChain);
 
-  // ← Controls which row's dialog is open
   const [dialogRow, setDialogRow] = useState<SelectedRow | null>(null);
   const [isInvesting, setIsInvesting] = useState(false);
+
+  // ← Amount input state
+  const [amount, setAmount] = useState("");
+  const [amountError, setAmountError] = useState<string | null>(null);
+
+  // ==================== OPEN DIALOG ====================
+  const openDialog = (row: SelectedRow) => {
+    setAmount(""); // reset amount on each open
+    setAmountError(null); // reset error on each open
+    setDialogRow(row);
+  };
+
+  // ==================== AMOUNT VALIDATION ====================
+  const validateAmount = (value: string): boolean => {
+    if (!value || value.trim() === "") {
+      setAmountError("Please enter an amount to invest.");
+      return false;
+    }
+    const parsed = parseFloat(value);
+    if (isNaN(parsed) || parsed <= 0) {
+      setAmountError("Amount must be a positive number.");
+      return false;
+    }
+    setAmountError(null);
+    return true;
+  };
 
   // ==================== INVEST HANDLER ====================
   const handleInvest = async () => {
     if (!dialogRow) return;
+    if (!validateAmount(amount)) return; // block submission if invalid
+
     setIsInvesting(true);
 
     try {
       // TODO: replace with your real invest() contract call
-      await new Promise((resolve) => setTimeout(resolve, 1200)); // simulated delay
+      // e.g. await yieldAggregator.invest(token, parseUnits(amount, 6), protocol)
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       const investedAt = new Date().toLocaleTimeString([], {
         hour: "2-digit",
@@ -66,15 +95,15 @@ export default function YieldTable() {
               <span className="font-medium">{dialogRow.token}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">APY</span>
-              <span className="font-medium text-green-500">
-                {dialogRow.apy.toFixed(2)}%
+              <span className="text-muted-foreground">Amount Invested</span>
+              <span className="font-medium">
+                {amount} {dialogRow.token}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">TVL</span>
-              <span className="font-medium">
-                ${(dialogRow.tvl / 1e6).toFixed(2)}M
+              <span className="text-muted-foreground">APY</span>
+              <span className="font-medium text-green-500">
+                {dialogRow.apy.toFixed(2)}%
               </span>
             </div>
             <div className="flex justify-between pt-1 border-t border-border">
@@ -91,7 +120,7 @@ export default function YieldTable() {
       });
     } finally {
       setIsInvesting(false);
-      setDialogRow(null); // close dialog
+      setDialogRow(null);
     }
   };
 
@@ -128,7 +157,6 @@ export default function YieldTable() {
             </Button>
           </div>
 
-          {/* Chain selector */}
           <div className="flex flex-col sm:flex-row items-center gap-4 mt-3">
             {SUPPORTED_CHAINS.map((chain) => (
               <Button
@@ -200,9 +228,7 @@ export default function YieldTable() {
                     return (
                       <tr
                         key={`${row.protocol}-${row.chain}-${row.token}`}
-                        className={`border-b border-border hover:bg-muted/50 transition-colors ${
-                          isHighest ? "bg-accent/10" : ""
-                        }`}
+                        className={`border-b border-border hover:bg-muted/50 transition-colors ${isHighest ? "bg-accent/10" : ""}`}
                       >
                         <td className="p-4">
                           <div className="flex items-center space-x-3">
@@ -216,35 +242,28 @@ export default function YieldTable() {
                             </span>
                           </div>
                         </td>
-
                         <td className="p-4">
                           <span className="text-sm text-muted-foreground">
                             {row.chain}
                           </span>
                         </td>
-
                         <td className="p-4">
                           <span className="font-mono text-sm text-foreground">
                             {row.token}
                           </span>
                         </td>
-
                         <td className="p-4">
                           <span
-                            className={`font-mono text-sm font-bold ${
-                              isHighest ? "text-accent" : "text-foreground"
-                            }`}
+                            className={`font-mono text-sm font-bold ${isHighest ? "text-accent" : "text-foreground"}`}
                           >
                             {row.apy.toFixed(2)}%
                           </span>
                         </td>
-
                         <td className="p-4">
                           <span className="font-mono text-sm text-foreground">
                             ${Number(row.tvl / 1e6).toFixed(2)}M
                           </span>
                         </td>
-
                         <td className="p-4">
                           <Badge
                             variant={
@@ -258,7 +277,6 @@ export default function YieldTable() {
                             {row.risk}
                           </Badge>
                         </td>
-
                         <td className="p-4">
                           <div className="flex items-center space-x-1">
                             {isPositive ? (
@@ -267,24 +285,20 @@ export default function YieldTable() {
                               <TrendingDown className="w-3 h-3 text-destructive" />
                             )}
                             <span
-                              className={`font-mono text-sm ${
-                                isPositive ? "text-accent" : "text-destructive"
-                              }`}
+                              className={`font-mono text-sm ${isPositive ? "text-accent" : "text-destructive"}`}
                             >
                               {isPositive ? "+" : "-"}
                               {displayChange}%
                             </span>
                           </div>
                         </td>
-
                         <td className="p-4">
-                          {/* ← Opens the alert dialog for this specific row */}
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs bg-transparent"
+                            className="text-xs bg-transparent cursor-pointer"
                             onClick={() =>
-                              setDialogRow({
+                              openDialog({
                                 protocol: row.protocol,
                                 chain: row.chain,
                                 token: row.token,
@@ -317,10 +331,8 @@ export default function YieldTable() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Investment</AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-3 mt-2">
-                <p className="text-sm text-muted-foreground">
-                  You are about to start farming in the following opportunity:
-                </p>
+              <div className="space-y-4 mt-2">
+                {/* Position summary */}
                 {dialogRow && (
                   <div className="rounded-md border border-border p-3 space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -349,6 +361,37 @@ export default function YieldTable() {
                     </div>
                   </div>
                 )}
+
+                {/* ← Amount input */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="invest-amount"
+                    className="text-sm font-medium"
+                  >
+                    Amount to Invest ({dialogRow?.token})
+                  </Label>
+                  <Input
+                    id="invest-amount"
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder={`e.g. 100`}
+                    value={amount}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      if (amountError) validateAmount(e.target.value); // live re-validate after first error
+                    }}
+                    className={
+                      amountError
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : ""
+                    }
+                  />
+                  {/* Inline error message */}
+                  {amountError && (
+                    <p className="text-xs text-destructive">{amountError}</p>
+                  )}
+                </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
