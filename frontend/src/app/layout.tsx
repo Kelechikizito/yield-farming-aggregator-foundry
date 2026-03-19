@@ -7,6 +7,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 // import { Analytics } from "@vercel/analytics/next";
 import Header from "@/components/Header";
+import { Toaster } from "@/components/ui/sonner";
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -27,7 +28,9 @@ export default function RootLayout(props: { children: ReactNode }) {
       >
         <Providers>
           <Header />
+
           {props.children}
+          <Toaster />
         </Providers>
       </body>
     </html>
