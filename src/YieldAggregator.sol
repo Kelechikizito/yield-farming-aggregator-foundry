@@ -5,7 +5,7 @@ pragma solidity 0.8.26;
 // version
 // imports
 // interfaces, libraries, contract
-// errorsss
+// errorssss
 
 // Inside Contract:
 // Type declarations
