@@ -12,7 +12,6 @@ pragma solidity 0.8.26;
 // State variables
 // Events
 // Modifiers
-// Functions
 
 // Layout of Functions:
 // constructor
