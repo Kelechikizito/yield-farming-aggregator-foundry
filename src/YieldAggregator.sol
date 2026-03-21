@@ -33,15 +33,10 @@ import {IProtocolAdapter} from "src/interfaces/IProtocolAdapter.sol";
 // import {IStrategyManager} from "src/interfaces/IStrategyManager.sol";
 import {IYieldAggregator} from "src/interfaces/IYieldAggregator.sol";
 
-// **APIs to Research:**
-// - DefiLlama API (aggregated DeFi data)
-// - Individual protocol APIs (Compound, Aave, Uniswap)
-// - Price feeds (CoinGecko, CoinMarketCap)
-
 /**
  * @title YieldAggregator
  * @author Kelechi Kizito Ugwu
- * @notice The Yield Aggregator contract that allows users to deposit assets into various yield-generating protocols.
+ * @notice The Yield Aggregator contract allows users to deposit assets into various yield-generating protocols.
  * It supports multiple protocols through adapters, tracks user positions, and offers auto-compounding features.
  * @dev
  */
