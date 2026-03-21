@@ -33,28 +33,38 @@ import {IProtocolAdapter} from "src/interfaces/IProtocolAdapter.sol";
 import {IYieldAggregator} from "src/interfaces/IYieldAggregator.sol";
 
 /**
- * @title YieldAggregator
+ * @title Yield Aggregator
  * @author Kelechi Kizito Ugwu
  * @notice The Yield Aggregator contract allows users to deposit assets into various yield-generating protocols.
- * It supports multiple protocols through adapters, tracks user positions, and offers auto-compounding features.
- * @dev
+ * It supports multiple protocols through adapters, tracks user positions.
+ * @notice Auto-compounding and Strategy switching features are future development.
+ * @dev Auto-compounding and Strategy switching features are future development.
  */
-// Vulnerability: Unchecked balance assumptions. Never rely solely on address(this).balance for critical logic.
-// Fix: Track deposits via a state variable (e.g., mapping(address => uint256) public deposits)/mapping(address => bool) public hasDeposited; instead of raw balance.
+
 contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
     /*//////////////////////////////////////////////////////////////
                               ERRORS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev This error is thrown when a user tries to invest an amount greater than their balance.
     error YieldAggregator__InsufficientBalance();
+    /// @dev This error is thrown when a user tries to interact with a protocol that is not supported (i.e., no adapter added for that protocol).
     error YieldAggregator__ProtocolNotSupported();
+    /// @dev This error is thrown when a user tries to complete an operation with an invalid amount (e.g., zero).
     error YieldAggregator__InvalidAmount();
+    /// @dev This error is thrown when a user tries to interact with an investment position that doesn't exist (e.g., invalid index).
     error YieldAggregator__PositionNotFound();
+    /// @dev This error is thrown when an invalid adapter address is provided (e.g., zero address).
     error YieldAggregator__InvalidAdapterAddress();
+    /// @dev This error is thrown when an invalid token address is provided (e.g., zero address).
     error YieldAggregator__InvalidToken();
+    /// @dev This error is thrown when the number of shares received is invalid.
     error YieldAggregator__InvalidSharesReceived();
+    /// @dev This error is thrown when an ETH deposit is attempted but not supported.
     error YieldAggregator__ETHDepositNotSupported();
+    /// @dev This error is thrown when a user tries to withdraw more ETH than their balance.
     error YieldAggregator__InsufficientETHBalance();
+    /// @dev This error is thrown when an ETH withdrawal attempt fails (e.g., due to a failed call).
     error YieldAggregator__FailedETHWithdrawal();
 
     /*//////////////////////////////////////////////////////////////
@@ -67,7 +77,7 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
      */
     using SafeERC20 for IERC20;
 
-    /// @dev This sstruct holds the information about a user's investment position in a specific protocol.
+    /// @dev This struct holds the information about a user's investment position in a specific protocol.
     // struct UserPosition {
     //     string protocolName; // "compound", "aave", etc.
     //     address token; // USDC, DAI, etc.
@@ -93,10 +103,9 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
     /// @dev The mapping tracking user positions
     mapping(address user => UserPosition[]) private s_userPositions; // the mapping is to an array because one user can have multiple positions
     /// @dev The mapping of protocol names to their adapter contract addresses
-    /// @dev Maps user => token => Claim details (amount, timestamp, merkleRoot)
     mapping(string protocolName => address adapterAddress) private s_protocolAdapters;
     /// @dev The mapping of user addresses to their auto-compounding settings
-    mapping(address user => AutoCompoundSettings) private s_userSettings;
+    // mapping(address user => AutoCompoundSettings) private s_userSettings;
 
     // IStrategyManager private immutable i_strategyManager;
 
@@ -127,11 +136,15 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
         _;
     }
 
+    /// @notice Modifier to check if the provided adapter address is not a zero address
+    /// @param adapterAddress The address of the protocol adapter to validate
     modifier noneZeroAddress(address adapterAddress) {
         if (adapterAddress == address(0)) revert YieldAggregator__InvalidAdapterAddress();
         _;
     }
 
+    /// @notice Modifier to check if the provided token address is not a zero address
+    /// @param token The address of the token to validate
     modifier validToken(address token) {
         if (token == address(0)) revert YieldAggregator__InvalidToken();
         _;
@@ -175,8 +188,9 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
     }
 
     /**
-     * @dev
-     *
+     * @dev Its internal implementation adds a new protocol adapter to the Yield Aggregator, and its external function is protected by the nonReentrant, noneZeroAddress, and onlyOwner modifiers to ensure that only the contract owner can add a valid adapter without risking reentrancy attacks.
+     * @param protocolName The name of the protocol (e.g., "compound", "aave")
+     * @param adapterAddress The address of the protocol adapter contract
      */
     function addAdapter(string memory protocolName, address adapterAddress)
         external
@@ -191,10 +205,20 @@ contract YieldAggregator is IYieldAggregator, ReentrancyGuard, Ownable {
     //     _setAutoCompoundSettings(enabled, minReward, maxGas, slippage);
     // }
 
+    /**
+        * @dev Its internal implemenattion withdraws funds from a specific investment position
+        * @param positionIndex The index of the user's investment position to withdraw from.
+     */
     function withdraw(uint256 positionIndex) external nonReentrant {
         _withdraw(positionIndex);
     }
 
+    /**
+        * @dev Its internal implementation invests tokens into the best available yield protocol based on the user's preference, and its external function is protected by the nonReentrant, validAmount, and validToken modifiers to ensure that the user is investing a valid amount of a valid token without risking reentrancy attacks.
+        * @param token The token address to invest
+        * @param amount The amount to invest
+        * @param preferredProtocol Optional protocol preference (empty string for auto-select)
+     */
     function invest(address token, uint256 amount, string memory preferredProtocol)
         external
         nonReentrant
